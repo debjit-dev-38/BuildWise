@@ -11,9 +11,9 @@ import { useEffect, useState } from "react";
 import { platformStats, communityStats, howItWorksSteps } from "./platform";
 import { comparisonTable } from "./about";
 import { testimonials } from "./testimonials";
-import { getFeaturedProjects } from "../services/projectService";
-import { getPublishedPaths } from "../services/learningPathService";
-import { COLORS, FONTS } from "../constants/theme";
+import { getFeaturedProjects } from "../Services/projectService";
+import { getPublishedPaths } from "../Services/learningPathService";
+import { COLORS, FONTS } from "../Constants/theme";
 
 export default function Home() {
   const [featuredProjects, setFeaturedProjects] = useState([]);

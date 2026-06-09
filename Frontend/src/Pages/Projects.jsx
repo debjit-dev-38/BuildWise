@@ -10,7 +10,7 @@ import {
   Star, ExternalLink, Filter, Monitor, Server, Layers,
   Brain, Smartphone, Container, ArrowUpRight, Check
 } from "lucide-react";
-import { filterProjects, getFeaturedProjects, getProjects } from "../services/projectService";
+import { filterProjects, getFeaturedProjects, getProjects } from "../Services/projectService";
 import {
   categories,
   difficulties,
@@ -19,7 +19,7 @@ import {
   techFilters,
   matchDurationFilter,
 } from "../data/filters";
-import { COLORS, FONTS, DIFFICULTY_COLORS } from "../constants/theme";
+import { COLORS, FONTS, DIFFICULTY_COLORS } from "../Constants/theme";
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 
 

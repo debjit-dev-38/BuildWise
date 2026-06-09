@@ -1,4 +1,4 @@
-import { COLORS } from "../constants/theme.js";
+import { COLORS } from "../Constants/theme.js";
 import {
   Monitor,
   Server,

@@ -10,9 +10,9 @@ import Navbar from "../Components/Navbar";
 import { platformStats, communityStats, howItWorksSteps } from "../data/platform";
 import { comparisonTable } from "../data/about";
 import { testimonials } from "../data/testimonials";
-import { getFeaturedProjects } from "../services/projectService";
-import { getPublishedPaths } from "../services/learningPathService";
-import { COLORS, FONTS } from "../constants/theme";
+import { getFeaturedProjects } from "../Services/projectService";
+import { getPublishedPaths } from "../Services/learningPathService";
+import { COLORS, FONTS } from "../Constants/theme";
 
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
 

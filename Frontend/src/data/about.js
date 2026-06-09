@@ -9,7 +9,7 @@ import {
   Heart,
 } from "lucide-react";
 
-import { COLORS } from "../constants/theme.js";
+import { COLORS } from "../Constants/theme.js";
 
 // ─────────────────────────────────────────────
 // About Page Data
