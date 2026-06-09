@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+.glow-node {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #22d3ee;
+  animation: pulseGlow 4.8s infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+    box-shadow:
+      0 0 5px #22d3ee,
+      0 0 10px #22d3ee;
+  }
+
+  10% {
+    transform: scale(1.4);
+    opacity: 1;
+    box-shadow:
+      0 0 20px #22d3ee,
+      0 0 40px #22d3ee,
+      0 0 70px #22d3ee;
+  }
+
+  20% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 0.3;
+  }
+}
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+  background: black;
+}
+
+body {
+  overflow-x: hidden;
+}
