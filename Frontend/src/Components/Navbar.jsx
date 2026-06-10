@@ -128,9 +128,17 @@ const Navbar = () => {
             exit={{ height: 0, opacity: 0 }}
             style={{ overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}
           >
-            {NAV_LINKS.map((l) => (
-              <div key={l} className="py-[10px] text-sm" style={{ color: "#888" }}>{l}</div>
-            ))}
+            <div className="flex flex-col">
+              {NAV_LINKS.map((l) => {
+                const isActive = location.pathname === l.path;
+                return (
+                  <Link key={l.name} to={l.path} className="py-[10px] text-sm" style={{
+                    color: isActive ? G.green : "#888",
+                    fontWeight: isActive ? 600 : 400,
+                  }}>{l.name}</Link>
+                );
+              })}
+            </div>
             <div className="flex gap-2 mt-2">
               <button className="flex-1 text-center py-[9px] text-[13px] rounded-lg" style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#e5e5e5", background: "transparent" }}>Login</button>
               <button className="flex-1 text-center py-[9px] text-[13px] font-semibold rounded-lg" style={{ background: "#6EE7B7", color: "#0A0A0A" }}>Get Started</button>
