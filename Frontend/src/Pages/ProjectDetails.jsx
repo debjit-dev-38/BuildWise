@@ -705,28 +705,6 @@ export default function ProjectDetails() {
             {/* ═══ RIGHT COLUMN ═══ */}
             <div style={{ position: "sticky", top: 76, display: "flex", flexDirection: "column", gap: 16 }}>
 
-              {/* Project Info */}
-              <ScrollReveal>
-                <GlassCard style={{ padding: "22px 24px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6EE7B7", marginBottom: 18 }}>Project Info</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                    {[
-                      { icon: Clock, label: "Duration", value: details.info.duration },
-                      { icon: Users, label: "Team", value: details.info.team },
-                      { icon: Briefcase, label: "My Role", value: details.info.role },
-                      { icon: Calendar, label: "Completed", value: details.info.date },
-                    ].map(({ icon: Icon, label, value }, i, arr) => (
-                      <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 9, color: "rgba(255,255,255,0.4)" }}>
-                          <Icon size={13} />
-                          <span style={{ fontSize: 12 }}>{label}</span>
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>{value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
-              </ScrollReveal>
 
               {/* Tech Stack */}
               <ScrollReveal delay={0.06}>

@@ -477,7 +477,7 @@ export const projectDetails = {
       { value: "92%", num: 92, label: "Test Coverage", iconKey: "CheckCircle2" },
       { value: "15K", num: 15000, label: "Req/sec", iconKey: "Zap" },
     ],
-    info: { duration: "7 weeks", team: "2 engineers", role: "Lead Backend", date: "February 2024" },
+    
     stack: [
       { iconKey: "Server", name: "Node.js", cat: "Runtime" },
       { iconKey: "Database", name: "PostgreSQL", cat: "Database" },
