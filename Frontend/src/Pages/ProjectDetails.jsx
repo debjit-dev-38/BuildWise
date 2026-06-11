@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ExternalLink, FileText, Mail,
   Clock, Users, Briefcase, Calendar, CheckCircle2,
@@ -10,6 +10,7 @@ import {
   ArrowRight, Sparkles,
 } from "lucide-react";
 import Navbar from "../Components/Navbar";
+import Background from "../Components/Background";
 
 // ── Service + data imports ─────────────────────────────────────────────────
 import {
@@ -17,6 +18,7 @@ import {
   getProjectDetails,
   getRelatedProjects,
 } from "../Services/projectService";
+import projectDetails from "../data/projectDetails";
 
 // ── Google Fonts ───────────────────────────────────────────────────────────
 const _f = document.createElement("link");
@@ -86,22 +88,6 @@ function Counter({ value }) {
     requestAnimationFrame(tick);
   }, [inView, value]);
   return <span ref={ref}>{count}</span>;
-}
-
-// ── Background ─────────────────────────────────────────────────────────────
-function Background() {
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
-      }} />
-      <div style={{ position: "absolute", top: "-20%", right: "-10%", width: 700, height: 700, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(110,231,183,0.07) 0%, transparent 70%)", filter: "blur(60px)" }} />
-      <div style={{ position: "absolute", bottom: "10%", left: "-15%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(129,140,248,0.06) 0%, transparent 70%)", filter: "blur(60px)" }} />
-      <div style={{ position: "absolute", top: "50%", left: "40%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(110,231,183,0.04) 0%, transparent 70%)", filter: "blur(40px)" }} />
-    </div>
-  );
 }
 
 // ── Floating Stat Card ─────────────────────────────────────────────────────
@@ -443,7 +429,7 @@ function LoadingState() {
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function ProjectDetails() {
   const { slug } = useParams();
-
+  const navigate=useNavigate();
   // Data state — everything comes from the service layer
   const [project, setProject] = useState(null);   // card-level meta (from projects.js)
   const [details, setDetails] = useState(null);   // full detail object (from projectDetails.js)
@@ -531,10 +517,10 @@ export default function ProjectDetails() {
               <div style={{ position: "absolute", inset: 0, borderRadius: 28, boxShadow: "inset 0 0 0 1px rgba(110,231,183,0.12)" }} />
 
               {/* Play button */}
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div  onClick={()=>navigate(`/learningpage/${projectDetails.slug}`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
                   style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white" />
+                  <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white"/>
                 </motion.div>
               </div>
 

@@ -20,6 +20,7 @@ import {
   getAdminAchievements,
 } from "../Services/adminService";
 import { COLORS, FONTS } from "../Constants/theme";
+import ProjectBuilderDrawer from "./ProjectBuilderDrawer";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 // Mint accent: #6ee7b7 / emerald-300  (primary accent, matches Dashboard)
@@ -37,11 +38,11 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const [collapsed, setCollapsed] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
-  const [summary, setSummary]   = useState(null);
+  const [summary, setSummary] = useState(null);
   const [projects, setProjects] = useState([]);
-  const [users, setUsers]       = useState([]);
-  const [paths, setPaths]       = useState([]);
-  const [badges, setBadges]     = useState([]);
+  const [users, setUsers] = useState([]);
+  const [paths, setPaths] = useState([]);
+  const [badges, setBadges] = useState([]);
 
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const sideWidth = collapsed ? 56 : 216;
@@ -54,11 +55,11 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
     getAdminAchievements().then(setBadges);
   }, []);
 
-  const stats        = summary?.metrics     ?? {};
-  const activity     = summary?.activity    ?? [];
-  const notifications= summary?.notifications ?? [];
-  const chartUserGrowth      = summary?.charts?.userGrowth      ?? [];
-  const chartProjectViews    = summary?.charts?.projectViews    ?? [];
+  const stats = summary?.metrics ?? {};
+  const activity = summary?.activity ?? [];
+  const notifications = summary?.notifications ?? [];
+  const chartUserGrowth = summary?.charts?.userGrowth ?? [];
+  const chartProjectViews = summary?.charts?.projectViews ?? [];
   const chartPathCompletions = summary?.charts?.pathCompletions ?? [];
 
   const sectionMap = {
@@ -150,12 +151,12 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 
               {/* Stat cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <StatCard icon={Users}       label="Total Users"     value={stats.totalUsers        ?? 0} delay={0.05} />
-                <StatCard icon={FolderOpen}  label="Total Projects"  value={stats.totalProjects     ?? 0} delay={0.08} />
-                <StatCard icon={BookOpen}    label="Learning Paths"  value={stats.totalLearningPaths?? 0} delay={0.11} />
-                <StatCard icon={CheckCircle} label="Completions"     value={stats.totalCompletions  ?? 0} delay={0.14} />
-                <StatCard icon={Zap}         label="Active Users"    value={stats.activeUsers       ?? 0} delay={0.17} />
-                <StatCard icon={TrendingUp}  label="New This Week"   value={stats.newUsersThisWeek  ?? 0} delay={0.20} />
+                <StatCard icon={Users} label="Total Users" value={stats.totalUsers ?? 0} delay={0.05} />
+                <StatCard icon={FolderOpen} label="Total Projects" value={stats.totalProjects ?? 0} delay={0.08} />
+                <StatCard icon={BookOpen} label="Learning Paths" value={stats.totalLearningPaths ?? 0} delay={0.11} />
+                <StatCard icon={CheckCircle} label="Completions" value={stats.totalCompletions ?? 0} delay={0.14} />
+                <StatCard icon={Zap} label="Active Users" value={stats.activeUsers ?? 0} delay={0.17} />
+                <StatCard icon={TrendingUp} label="New This Week" value={stats.newUsersThisWeek ?? 0} delay={0.20} />
               </div>
 
               <AnalyticsSection
@@ -214,16 +215,15 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
       {/* Modals */}
       <AnimatePresence>
         {showAddProject && (
-          <AddProjectModal
+          <ProjectBuilderDrawer
+            open={showAddProject}
             onClose={() => setShowAddProject(false)}
-            onSave={(form) => {
-              setProjects((prev) => [...prev, {
-                id: Date.now(), name: form.title, category: form.category || "Web Dev",
-                difficulty: form.difficulty, tech: form.techStack.split(",").map((t) => t.trim()).filter(Boolean),
-                status: "Draft", created: new Date().toISOString().slice(0, 10),
-              }]);
+            onSave={(project) => {
+              console.log(project);
+              setShowAddProject(false);
             }}
           />
+
         )}
       </AnimatePresence>
     </div>
@@ -378,83 +378,7 @@ function StatCard({ icon: Icon, label, value, delay = 0 }) {
 const inputCls = "w-full bg-[#0a0a0a] border border-white/7 rounded-lg px-3.5 py-2.5 text-sm text-white/80 placeholder-white/18 focus:outline-none focus:border-white/18 transition-colors";
 const labelCls = "block text-xs text-white/40 mb-1.5 font-medium";
 
-function AddProjectModal({ onClose, onSave }) {
-  const [form, setForm] = useState({
-    title: "", description: "", difficulty: "Beginner", category: "",
-    duration: "", techStack: "", github: "", demo: "", thumbnail: "", outcomes: "",
-  });
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/8 bg-[#0d0f14] shadow-2xl"
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-          <div>
-            <h3 className="text-sm font-semibold text-white">Add New Project</h3>
-            <p className="text-xs text-white/35 mt-0.5">Fill in the details to publish a new project</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg border border-white/8 text-white/30 hover:text-white/70 hover:border-white/15 transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-        <div className="p-6 grid grid-cols-2 gap-4">
-          {[
-            { label: "Project Title", key: "title", span: 2, placeholder: "Build a Full-Stack Todo App" },
-            { label: "Category", key: "category", placeholder: "Web Dev, AI/ML, Web3…" },
-            { label: "Estimated Duration", key: "duration", placeholder: "e.g. 3 days" },
-            { label: "GitHub Link", key: "github", placeholder: "https://github.com/…" },
-            { label: "Live Demo Link", key: "demo", placeholder: "https://demo.example.com" },
-            { label: "Thumbnail URL", key: "thumbnail", span: 2, placeholder: "https://…/thumbnail.png" },
-          ].map(({ label, key, span, placeholder }) => (
-            <div key={key} className={span === 2 ? "col-span-2" : ""}>
-              <label className={labelCls}>{label}</label>
-              <input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className={inputCls} />
-            </div>
-          ))}
-          <div>
-            <label className={labelCls}>Difficulty</label>
-            <select value={form.difficulty} onChange={(e) => set("difficulty", e.target.value)}
-              className={inputCls + " appearance-none"}>
-              {["Beginner", "Intermediate", "Advanced"].map((d) => <option key={d}>{d}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Tech Stack</label>
-            <input value={form.techStack} onChange={(e) => set("techStack", e.target.value)}
-              placeholder="React, Node.js, MongoDB…" className={inputCls} />
-          </div>
-          <div className="col-span-2">
-            <label className={labelCls}>Description</label>
-            <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
-              rows={3} placeholder="A brief description of what the project teaches…"
-              className={inputCls + " resize-none"} />
-          </div>
-          <div className="col-span-2">
-            <label className={labelCls}>Learning Outcomes</label>
-            <textarea value={form.outcomes} onChange={(e) => set("outcomes", e.target.value)}
-              rows={3} placeholder="What will the learner be able to do after completing this project?"
-              className={inputCls + " resize-none"} />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2.5 px-6 py-5 border-t border-white/5">
-          <GhostButton onClick={onClose} icon={X}>Cancel</GhostButton>
-          <PrimaryButton onClick={() => { onSave(form); onClose(); }} icon={Check}>Save Project</PrimaryButton>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 function AchievementModal({ onClose, initial = null, onSave }) {
   const [form, setForm] = useState(initial || { name: "", description: "", icon: "🏆", xp: 100 });
@@ -574,8 +498,8 @@ function ProjectManagement({ projects, setProjects, onAddProject }) {
                   <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.created}</td>
                   <td className="py-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <GhostButton small icon={Eye} onClick={() => {}}>View</GhostButton>
-                      <GhostButton small icon={Edit2} onClick={() => {}}>Edit</GhostButton>
+                      <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
+                      <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
                       <GhostButton small danger icon={Trash2} onClick={() => setProjects((prev) => prev.filter((x) => x.id !== p.id))}>Del</GhostButton>
                     </div>
                   </td>
@@ -597,7 +521,7 @@ function LearningPathManagement({ paths, setPaths }) {
   return (
     <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318] p-6">
       <SectionHeader title="Learning Paths" subtitle={`${paths.length} paths`}
-        action={<PrimaryButton small icon={Plus} onClick={() => {}}>Add Path</PrimaryButton>} />
+        action={<PrimaryButton small icon={Plus} onClick={() => { }}>Add Path</PrimaryButton>} />
       <div className="grid gap-2">
         {paths.map((lp, i) => (
           <motion.div key={lp.id}
@@ -614,8 +538,8 @@ function LearningPathManagement({ paths, setPaths }) {
               <Badge label={lp.difficulty} colorClass={difficultyColor(lp.difficulty)} />
               <Badge label={lp.status} colorClass={statusColor(lp.status)} />
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <GhostButton small icon={Eye} onClick={() => {}}>View</GhostButton>
-                <GhostButton small icon={Edit2} onClick={() => {}}>Edit</GhostButton>
+                <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
+                <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
                 <GhostButton small danger icon={Trash2} onClick={() => setPaths((p) => p.filter((x) => x.id !== lp.id))}>Del</GhostButton>
               </div>
             </div>
@@ -641,8 +565,8 @@ function UserManagement({ users, setUsers }) {
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const promote = (id) => setUsers((u) => u.map((x) => x.id === id ? { ...x, role: "admin" } : x));
-  const demote  = (id) => setUsers((u) => u.map((x) => x.id === id ? { ...x, role: "user"  } : x));
-  const remove  = (id) => setUsers((u) => u.filter((x) => x.id !== id));
+  const demote = (id) => setUsers((u) => u.map((x) => x.id === id ? { ...x, role: "user" } : x));
+  const remove = (id) => setUsers((u) => u.filter((x) => x.id !== id));
 
   // TODO: User management API
 
@@ -813,7 +737,7 @@ function ContentModeration() {
             </div>
             <p className="text-sm font-medium text-white/80 mb-1">{label}</p>
             <p className="text-xs text-white/30 mb-4 leading-relaxed">{desc}</p>
-            <GhostButton small icon={Eye} onClick={() => {}}>Review</GhostButton>
+            <GhostButton small icon={Eye} onClick={() => { }}>Review</GhostButton>
           </div>
         ))}
       </div>
@@ -974,15 +898,15 @@ function ActivityFeed({ activity = [] }) {
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 
 const NAV = [
-  { id: "overview",    label: "Overview",       icon: LayoutDashboard },
-  { id: "projects",    label: "Projects",        icon: FolderOpen },
-  { id: "paths",       label: "Learning Paths",  icon: BookOpen },
-  { id: "users",       label: "Users",           icon: Users },
-  { id: "analytics",   label: "Analytics",       icon: BarChart2 },
-  { id: "moderation",  label: "Moderation",      icon: Shield },
-  { id: "achievements",label: "Achievements",    icon: Trophy },
-  { id: "settings",    label: "Settings",        icon: Settings },
-  { id: "activity",    label: "Activity",        icon: Activity },
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "projects", label: "Projects", icon: FolderOpen },
+  { id: "paths", label: "Learning Paths", icon: BookOpen },
+  { id: "users", label: "Users", icon: Users },
+  { id: "analytics", label: "Analytics", icon: BarChart2 },
+  { id: "moderation", label: "Moderation", icon: Shield },
+  { id: "achievements", label: "Achievements", icon: Trophy },
+  { id: "settings", label: "Settings", icon: Settings },
+  { id: "activity", label: "Activity", icon: Activity },
 ];
 
 function Sidebar({ active, onSelect, collapsed, onToggle }) {

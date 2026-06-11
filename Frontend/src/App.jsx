@@ -7,6 +7,7 @@ import BuildWise from './Pages/Home'
 import ProjectDetails from './Pages/ProjectDetails'
 import About from './Pages/About'
 import AdminPanel from './Pages/AdminPanel'
+import BuildWiseLearningPage from './Pages/BuildWiseLearningPage'
 import { Navigate } from 'react-router-dom'
 const App = () => {
     const user = {
@@ -28,6 +29,7 @@ const App = () => {
                         : <Navigate to="/dashboard" />
                 }
             />
+            <Route path="/learningpage/:slug" element={<BuildWiseLearningPage />}/>
         </Routes>
     )
 }
