@@ -222,7 +222,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
             onSave={async (project) => {
               try {
                 const response = await axios.post(
-                  "http://localhost:8001/api/v1/projects/add-project",
+                  `${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`,
                   project
                 );
 
