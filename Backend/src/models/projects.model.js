@@ -274,9 +274,9 @@ const projectSchema = new Schema(
       type: String,
       enum: [
         "draft",
-        "in_progress",
+        "in-progress",
         "completed",
-        "coming_soon",
+        "coming-soon",
       ],
       default: "draft",
     },
