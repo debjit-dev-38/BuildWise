@@ -8,6 +8,11 @@ const techSchema = new Schema(
       trim: true,
     },
 
+    iconKey: {
+      type: String,
+      default: "",
+    },
+
     category: {
       type: String,
       default: "",
@@ -23,9 +28,19 @@ const metricSchema = new Schema(
       required: true,
     },
 
+    num: {
+      type: Number,
+      default: 0,
+    },
+
     label: {
       type: String,
       required: true,
+    },
+
+    iconKey: {
+      type: String,
+      default: "",
     },
   },
   { _id: false }
@@ -33,12 +48,17 @@ const metricSchema = new Schema(
 
 const featureSchema = new Schema(
   {
-    title: {
+    label: {
       type: String,
       required: true,
     },
 
-    description: {
+    desc: {
+      type: String,
+      default: "",
+    },
+
+    iconKey: {
       type: String,
       default: "",
     },
@@ -48,12 +68,17 @@ const featureSchema = new Schema(
 
 const moduleSchema = new Schema(
   {
-    title: {
+    phase: {
       type: String,
       required: true,
     },
 
-    description: {
+    weeks: {
+      type: String,
+      default: "",
+    },
+
+    desc: {
       type: String,
       default: "",
     },
@@ -63,7 +88,17 @@ const moduleSchema = new Schema(
       default: "",
     },
 
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+
     pdfUrl: {
+      type: String,
+      default: "",
+    },
+
+    pdfName: {
       type: String,
       default: "",
     },
@@ -83,7 +118,7 @@ const moduleSchema = new Schema(
 
 const gallerySchema = new Schema(
   {
-    imageUrl: {
+    src: {
       type: String,
       required: true,
     },
@@ -103,7 +138,7 @@ const challengeSchema = new Schema(
       required: true,
     },
 
-    description: {
+    body: {
       type: String,
       default: "",
     },
@@ -157,12 +192,12 @@ const projectSchema = new Schema(
       default: 0,
     },
 
-    projectImageKey: {
+    image: {
       type: String,
       default: "",
     },
 
-    themeColor: {
+    color: {
       type: String,
       enum: ["green", "indigo", "amber", "pink"],
       default: "green",
@@ -177,12 +212,12 @@ const projectSchema = new Schema(
       default: "",
     },
 
-    coverImageUrl: {
+    cover: {
       type: String,
       default: "",
     },
 
-    problemStatement: {
+    problem: {
       type: String,
       default: "",
     },
@@ -196,11 +231,11 @@ const projectSchema = new Schema(
     // TECH & FEATURES
     // ======================
 
-    techStack: [techSchema],
+    stack: [techSchema],
 
     metrics: [metricSchema],
 
-    keyFeatures: [featureSchema],
+    features: [featureSchema],
 
     // ======================
     // MODULES
@@ -225,7 +260,7 @@ const projectSchema = new Schema(
       default: false,
     },
 
-    isNewProject: {
+    newest: {
       type: Boolean,
       default: false,
     },
@@ -235,7 +270,7 @@ const projectSchema = new Schema(
       default: false,
     },
 
-    developmentStatus: {
+    status: {
       type: String,
       enum: [
         "draft",
@@ -246,7 +281,7 @@ const projectSchema = new Schema(
       default: "draft",
     },
 
-    relatedProjects: [
+    relatedProjectIds: [
       {
         type: Schema.Types.ObjectId,
         ref: "Project",
