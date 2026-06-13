@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   LayoutDashboard, Users, FolderOpen, BookOpen, Trophy, Settings,
   Bell, Activity, Shield, Plus, Search, Edit2, Trash2,
@@ -218,9 +219,22 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
           <ProjectBuilderDrawer
             open={showAddProject}
             onClose={() => setShowAddProject(false)}
-            onSave={(project) => {
-              console.log(project);
-              setShowAddProject(false);
+            onSave={async (project) => {
+              try {
+                const response = await axios.post(
+                  "http://localhost:8001/api/v1/projects/add-project",
+                  project
+                );
+
+                console.log(response.data);
+
+                setShowAddProject(false);
+
+              } catch (error) {
+                console.log("STATUS:", error.response?.status);
+                console.log("DATA:", error.response?.data);
+                console.log(error);
+            }
             }}
           />
 
