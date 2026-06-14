@@ -29,7 +29,7 @@ const App = () => {
                         : <Navigate to="/dashboard" />
                 }
             />
-            <Route path="/learningpage/:slug" element={<BuildWiseLearningPage />}/>
+            <Route path="/projectdetails/:slug/learningpage" element={<BuildWiseLearningPage />}/>
         </Routes>
     )
 }

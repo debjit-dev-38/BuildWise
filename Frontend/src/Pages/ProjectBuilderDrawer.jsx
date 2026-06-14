@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, User, Star, Lock, Shield, BookOpen, Code, Rocket, Target, Brain,
@@ -64,7 +65,8 @@ const DEFAULT = {
   category: "Full Stack", difficulty: "Intermediate", duration: "8 Weeks",
   durationWeeks: 8, stack: [], metrics: [], image: "", featured: false,
   newest: true, recommended: false, status: "in-progress", summary: "",
-  cover: "", problem: "", solution: "", features: [], gallery: [],
+  cover: { url: "", publicId: "", originalName: "" }, problem: "", solution: "",
+  features: [], gallery: [],
   challenges: [], modules: [], relatedProjectIds: [],
 };
 
@@ -280,14 +282,85 @@ function IconBtn({ iconKey, onClick, accent }) {
 }
 
 // ─── PDF Upload ────────────────────────────────────────────────────────────────
+const PDF_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const PDF_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-pdf`;
+// NOTE: PDF uploads occur immediately when selected.
+// Backend should clean up orphan uploads if a user uploads a PDF but never saves the project.
+
 function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
   const [drag, setDrag] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
   const fileRef = useRef();
+  const abortRef = useRef(null);
+  const mountedRef = useRef(true);
 
-  function handleFile(file) {
-    if (!file || file.type !== "application/pdf") return;
-    const url = URL.createObjectURL(file);
-    onUpload({ pdfName: file.name, pdfUrl: url, pdfFile: file });
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  async function handleFile(file) {
+    if (!file) return;
+
+    // Validate type
+    const isValidPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
+    if (!isValidPdf) {
+      setError("Only PDF files are accepted.");
+      return;
+    }
+
+    // Validate size
+    if (file.size > PDF_MAX_BYTES) {
+      setError("File exceeds 10 MB limit.");
+      return;
+    }
+
+    // Prevent duplicate upload
+    if (pdfName === file.name && pdfUrl) {
+      setError("This file is already uploaded.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+
+    // Cancel any in-flight upload
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const formData = new FormData();
+      formData.append("pdf", file);
+
+      const response = await axios.post(
+        PDF_UPLOAD_ENDPOINT,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          signal: abortRef.current.signal,
+        }
+      );
+
+      if (!mountedRef.current) return;
+
+      const { success, url, publicId, originalName } = response.data.data || {};
+      if (!success || !url || !publicId) {
+        throw new Error("Invalid response from upload server.");
+      }
+      onUpload({ pdfName: originalName ?? file.name, pdfUrl: url, pdfPublicId: publicId });
+    } catch (err) {
+      if (!mountedRef.current) return;
+      if (axios.isCancel(err)) return;
+      setError(err?.response?.data?.message ?? "Upload failed. Please try again.");
+    } finally {
+      if (mountedRef.current) setUploading(false);
+    }
   }
 
   return (
@@ -303,11 +376,15 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
             <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdfName}</div>
             <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted }}>PDF uploaded</div>
           </div>
-          <button onClick={() => fileRef.current?.click()}
-            style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", color: T.muted, fontFamily: T.sans, fontSize: 11, cursor: "pointer" }}>
+          <button
+            onClick={() => { if (uploading) return; setError(""); fileRef.current?.click(); }}
+            disabled={uploading}
+            style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", color: T.muted, fontFamily: T.sans, fontSize: 11, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.5 : 1 }}>
             Replace
           </button>
-          <button onClick={onRemove} style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex", padding: 4 }}>
+          <button
+            onClick={() => { abortRef.current?.abort(); abortRef.current = null; setUploading(false); setError(""); onRemove(); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex", padding: 4 }}>
             <X size={14} />
           </button>
         </div>
@@ -316,23 +393,171 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
           onDragOver={e => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}
-          onClick={() => fileRef.current?.click()}
+          onClick={() => !uploading && fileRef.current?.click()}
           style={{
             border: `2px dashed ${drag ? T.green : T.border}`,
             borderRadius: 10, padding: "20px 16px",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
             background: drag ? "rgba(110,231,183,0.04)" : "transparent",
-            cursor: "pointer", transition: "all 0.2s",
+            cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s",
+            opacity: uploading ? 0.7 : 1,
           }}>
           <Upload size={20} color={drag ? T.green : T.muted} />
           <div style={{ fontFamily: T.sans, fontSize: 13, color: T.muted, textAlign: "center" }}>
-            <span style={{ color: T.green, fontWeight: 600 }}>Upload PDF</span> or drag & drop
+            {uploading
+              ? <span style={{ color: T.green, fontWeight: 600 }}>Uploading…</span>
+              : <><span style={{ color: T.green, fontWeight: 600 }}>Upload PDF</span> or drag & drop</>
+            }
           </div>
-          <div style={{ fontFamily: T.sans, fontSize: 11, color: T.faint }}>PDF files only</div>
+          <div style={{ fontFamily: T.sans, fontSize: 11, color: T.faint }}>PDF files only · max 10 MB</div>
+        </div>
+      )}
+      {error && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontFamily: T.sans, fontSize: 11, color: "#F87171" }}>
+          <AlertCircle size={12} />
+          {error}
         </div>
       )}
       <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
-        onChange={e => handleFile(e.target.files[0])} />
+        onChange={e => { handleFile(e.target.files[0]); e.target.value = ""; }} />
+    </div>
+  );
+}
+
+// ─── Image Upload ──────────────────────────────────────────────────────────────
+const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const IMAGE_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-image`;
+const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
+const ACCEPTED_IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
+// NOTE: Image uploads occur immediately when selected.
+// Backend should clean up orphan uploads if a user uploads an image but never saves the project.
+
+function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Image" }) {
+  const [drag, setDrag] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef();
+  const abortRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  async function handleFile(file) {
+    if (!file) return;
+
+    const isValidType =
+      ACCEPTED_IMAGE_MIME.has(file.type) ||
+      ACCEPTED_IMAGE_EXT.test(file.name);
+    if (!isValidType) {
+      setError("Only JPEG, PNG, WebP, or GIF images are accepted.");
+      return;
+    }
+
+    if (file.size > IMAGE_MAX_BYTES) {
+      setError("File exceeds 10 MB limit.");
+      return;
+    }
+
+    if (originalName === file.name && url) {
+      setError("This image is already uploaded.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await axios.post(IMAGE_UPLOAD_ENDPOINT, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        signal: abortRef.current.signal,
+      });
+
+      if (!mountedRef.current) return;
+
+      const { success, url: resUrl, publicId, originalName: resName } = response.data.data || {};
+      if (!success || !resUrl || !publicId) {
+        throw new Error("Invalid response from upload server.");
+      }
+
+      onUpload({ url: resUrl, publicId, originalName: resName ?? file.name });
+    } catch (err) {
+      if (!mountedRef.current) return;
+      if (axios.isCancel(err)) return;
+      setError(err?.response?.data?.message ?? "Upload failed. Please try again.");
+    } finally {
+      if (mountedRef.current) setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      {url ? (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: T.surface, border: `1px solid ${T.border}`,
+          borderRadius: 10, padding: "10px 12px",
+        }}>
+          <img src={url} alt={originalName} style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0, border: `1px solid ${T.border}` }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: T.sans, fontSize: 13, color: T.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{originalName}</div>
+            <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted }}>Image uploaded</div>
+          </div>
+          <button
+            onClick={() => { if (uploading) return; setError(""); fileRef.current?.click(); }}
+            disabled={uploading}
+            style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 10px", color: T.muted, fontFamily: T.sans, fontSize: 11, cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.5 : 1 }}>
+            Replace
+          </button>
+          <button
+            onClick={() => { abortRef.current?.abort(); abortRef.current = null; setUploading(false); setError(""); onRemove(); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex", padding: 4 }}>
+            <X size={14} />
+          </button>
+        </div>
+      ) : (
+        <div
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); }}
+          onClick={() => !uploading && fileRef.current?.click()}
+          style={{
+            border: `2px dashed ${drag ? T.green : T.border}`,
+            borderRadius: 10, padding: "20px 16px",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+            background: drag ? "rgba(110,231,183,0.04)" : "transparent",
+            cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s",
+            opacity: uploading ? 0.7 : 1,
+          }}>
+          <Upload size={20} color={drag ? T.green : T.muted} />
+          <div style={{ fontFamily: T.sans, fontSize: 13, color: T.muted, textAlign: "center" }}>
+            {uploading
+              ? <span style={{ color: T.green, fontWeight: 600 }}>Uploading…</span>
+              : <><span style={{ color: T.green, fontWeight: 600 }}>{label}</span> or drag & drop</>
+            }
+          </div>
+          <div style={{ fontFamily: T.sans, fontSize: 11, color: T.faint }}>JPEG, PNG, WebP, GIF · max 10 MB</div>
+        </div>
+      )}
+      {error && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontFamily: T.sans, fontSize: 11, color: "#F87171" }}>
+          <AlertCircle size={12} />
+          {error}
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+        style={{ display: "none" }}
+        onChange={e => { handleFile(e.target.files[0]); e.target.value = ""; }} />
     </div>
   );
 }
@@ -484,7 +709,7 @@ function LearningPagePreview({ project }) {
 
   return (
     <div style={{ background: "#0A0A0A", borderRadius: 12, overflow: "hidden", fontFamily: T.sans, fontSize: 12 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", minHeight: 500, overflow: "hidden", }}>
+      <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", minHeight: 500, overflow: "hidden" }}>
         {/* LEFT SIDEBAR */}
         <div style={{ borderRight: `1px solid ${T.border}`, padding: "12px 0" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: T.muted, padding: "0 10px 6px" }}>Course Modules</div>
@@ -519,204 +744,65 @@ function LearningPagePreview({ project }) {
         </div>
 
         {/* CENTER */}
-        {/* CENTER */}
-        <div
-          style={{
-            padding: "16px 18px",
-            overflowY: "auto",
-            maxHeight: 500,
-            minWidth: 0,
-          }}
-        >
+        <div style={{ padding: "16px 18px", overflowY: "auto", maxHeight: 500, minWidth: 0 }}>
           <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-                color: accent,
-                background: `rgba(${rgb},0.1)`,
-                border: `1px solid rgba(${rgb},0.2)`,
-                padding: "2px 7px",
-                borderRadius: 20,
-              }}
-            >
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase",
+              color: accent, background: `rgba(${rgb},0.1)`, border: `1px solid rgba(${rgb},0.2)`,
+              padding: "2px 7px", borderRadius: 20,
+            }}>
               {project.category}
             </span>
-
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: "1px",
-                textTransform: "uppercase",
-                color: diffC,
-                background: `${diffC}18`,
-                border: `1px solid ${diffC}33`,
-                padding: "2px 7px",
-                borderRadius: 20,
-              }}
-            >
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase",
+              color: diffC, background: `${diffC}18`, border: `1px solid ${diffC}33`,
+              padding: "2px 7px", borderRadius: 20,
+            }}>
               {project.difficulty}
             </span>
           </div>
 
-          <div
-            style={{
-              fontFamily: T.serif,
-              fontSize: 22,
-              color: T.text,
-              lineHeight: 1.2,
-              marginBottom: 8,
-            }}
-          >
+          <div style={{ fontFamily: T.serif, fontSize: 22, color: T.text, lineHeight: 1.2, marginBottom: 8 }}>
             {project.name || "Project Title"}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 14,
-              marginBottom: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                color: T.muted,
-                fontSize: 11,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Clock size={11} />
-              {project.duration}
+          <div style={{ display: "flex", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ color: T.muted, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+              <Clock size={11} />{project.duration}
             </span>
-
-            <span
-              style={{
-                color: T.muted,
-                fontSize: 11,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Users2 size={11} />
-              4.1k learners
+            <span style={{ color: T.muted, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+              <Users2 size={11} />4.1k learners
             </span>
-
-            <span
-              style={{
-                color: T.muted,
-                fontSize: 11,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <StarIcon
-                size={11}
-                color={T.amber}
-                style={{ fill: T.amber }}
-              />
-              4.7
+            <span style={{ color: T.muted, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+              <StarIcon size={11} color={T.amber} style={{ fill: T.amber }} />4.7
             </span>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 5,
-              marginBottom: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            {project.stack.slice(0, 6).map((s) => (
-              <span
-                key={s.id}
-                style={{
-                  fontSize: 10,
-                  padding: "2px 8px",
-                  borderRadius: 20,
-                  background: "rgba(255,255,255,0.05)",
-                  border: `1px solid rgba(255,255,255,0.08)`,
-                  color: T.muted,
-                }}
-              >
+          <div style={{ display: "flex", gap: 5, marginBottom: 12, flexWrap: "wrap" }}>
+            {project.stack.slice(0, 6).map(s => (
+              <span key={s.id} style={{
+                fontSize: 10, padding: "2px 8px", borderRadius: 20,
+                background: "rgba(255,255,255,0.05)", border: `1px solid rgba(255,255,255,0.08)`, color: T.muted,
+              }}>
                 {s.name || "Tech"}
               </span>
             ))}
           </div>
 
           {activeMod && (
-            <div
-              style={{
-                background: T.surface,
-                border: `1px solid ${T.border}`,
-                borderRadius: 12,
-                padding: "12px 14px",
-                marginBottom: 14,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "2px",
-                  textTransform: "uppercase",
-                  color: accent,
-                  marginBottom: 4,
-                }}
-              >
+            <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: accent, marginBottom: 4 }}>
                 Module {String(activeIdx + 1).padStart(2, "0")}
               </div>
-
-              <div
-                style={{
-                  fontFamily: T.serif,
-                  fontSize: 18,
-                  color: T.text,
-                  marginBottom: 8,
-                }}
-              >
+              <div style={{ fontFamily: T.serif, fontSize: 18, color: T.text, marginBottom: 8 }}>
                 {activeMod.phase || "Module Title"}
               </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: 20,
-                    background: T.amber + "22",
-                    border: `1px solid ${T.amber}44`,
-                    color: T.amber,
-                  }}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: T.amber + "22", border: `1px solid ${T.amber}44`, color: T.amber }}>
                   In Progress
                 </span>
-
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: T.muted,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Clock size={10} />
-                  {activeMod.duration || "1 hr"}
+                <span style={{ fontSize: 11, color: T.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={10} />{activeMod.duration || "1 hr"}
                 </span>
               </div>
             </div>
@@ -724,90 +810,27 @@ function LearningPagePreview({ project }) {
 
           {activeMod?.desc && (
             <div style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase",
-                  color: accent,
-                  marginBottom: 6,
-                }}
-              >
-                Overview
-              </div>
-
-              <div
-                style={{
-                  fontSize: 12,
-                  color: T.muted,
-                  lineHeight: 1.7,
-                }}
-              >
-                {activeMod.desc}
-              </div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: accent, marginBottom: 6 }}>Overview</div>
+              <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>{activeMod.desc}</div>
             </div>
           )}
 
           <div style={{ marginBottom: 14 }}>
-            <div
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase",
-                color: accent,
-                marginBottom: 6,
-              }}
-            >
-              Learning Material
-            </div>
-
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: accent, marginBottom: 6 }}>Learning Material</div>
             {activeMod?.pdfName ? (
-              <div
-                style={{
-                  background: T.surface,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 10,
-                  padding: "10px 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
+              <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
                 <FileIcon size={16} color={accent} />
-
                 <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: T.text,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {activeMod.pdfName}
-                  </div>
+                  <div style={{ fontSize: 12, color: T.text, fontWeight: 600 }}>{activeMod.pdfName}</div>
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  background: T.surface,
-                  border: `1px dashed ${T.border}`,
-                  borderRadius: 10,
-                  padding: 16,
-                  textAlign: "center",
-                  color: T.muted,
-                  fontSize: 11,
-                }}
-              >
+              <div style={{ background: T.surface, border: `1px dashed ${T.border}`, borderRadius: 10, padding: 16, textAlign: "center", color: T.muted, fontSize: 11 }}>
                 No learning material uploaded
               </div>
             )}
           </div>
         </div>
-
-
       </div>
     </div>
   );
@@ -821,20 +844,10 @@ function TabBasicInfo({ p, set }) {
       <Field label="Project Name" required>
         <Inp value={p.name} onChange={e => {
           const name = e.target.value;
-
           set("name", name);
-
           if (!p.slug || p.slug === slugify(p.name))
             set("slug", slugify(name));
-
-          const initials = name
-            .split(" ")
-            .filter(Boolean)
-            .map(word => word[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase();
-
+          const initials = name.split(" ").filter(Boolean).map(word => word[0]).join("").slice(0, 2).toUpperCase();
           set("image", initials);
         }} />
       </Field>
@@ -874,8 +887,16 @@ function TabContent({ p, set }) {
       <Field label="Summary" hint="Extended overview for the project detail page">
         <Txa value={p.summary} onChange={e => set("summary", e.target.value)} placeholder="Expand on goals, scope, and learning outcomes." rows={4} />
       </Field>
-      <Field label="Cover Image URL" hint="Full-width hero banner">
-        <Inp value={p.cover} onChange={e => set("cover", e.target.value)} placeholder="https://..." />
+      <Field label="Cover Image" hint="Full-width hero banner">
+        <ImageUpload
+          url={p.cover.url}
+          originalName={p.cover.originalName}
+          onUpload={({ url, publicId, originalName }) =>
+            set("cover", { url, publicId, originalName })
+          }
+          onRemove={() => set("cover", { url: "", publicId: "", originalName: "" })}
+          label="Upload Cover Image"
+        />
       </Field>
       <Field label="Problem Statement">
         <Txa value={p.problem} onChange={e => set("problem", e.target.value)} placeholder="What real-world problem does this project solve?" rows={4} />
@@ -902,8 +923,11 @@ function TabTechFeatures({ p, set, openPicker }) {
     <div>
       {/* Tech Stack */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text }}>Tech Stack <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.stack.length})</span></div>
+        </div>
+        <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Name<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> is required per item.
         </div>
         {p.stack.map(item => (
           <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
@@ -919,7 +943,12 @@ function TabTechFeatures({ p, set, openPicker }) {
 
       {/* Metrics */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 12 }}>Metrics <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.metrics.length})</span></div>
+        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>
+          Metrics <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.metrics.length})</span>
+        </div>
+        <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Value<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> and Label<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> are required per item.
+        </div>
         {p.metrics.map(item => (
           <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
             <IconBtn iconKey={item.iconKey} onClick={() => openPicker("metrics", item.id)} accent={accent} />
@@ -933,7 +962,12 @@ function TabTechFeatures({ p, set, openPicker }) {
 
       {/* Features */}
       <div>
-        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 12 }}>Key Features <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.features.length})</span></div>
+        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>
+          Key Features <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.features.length})</span>
+        </div>
+        <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Label<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> is required per item.
+        </div>
         {p.features.map(item => (
           <div key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
             <IconBtn iconKey={item.iconKey} onClick={() => openPicker("features", item.id)} accent={accent} />
@@ -952,15 +986,17 @@ function TabTechFeatures({ p, set, openPicker }) {
 
 function TabModules({ p, set }) {
   function addModule() {
-    set("modules", [...p.modules, { id: uid(), phase: "", weeks: "", desc: "", duration: "", completed: false, locked: false, pdfFile: null, pdfUrl: "", pdfName: "" }]);
+    set("modules", [...p.modules, { id: uid(), phase: "", weeks: "", desc: "", duration: "", completed: false, locked: false, pdfUrl: "", pdfName: "", pdfPublicId: "" }]);
   }
-  function updateMod(id, k, v) { set("modules", p.modules.map(m => m.id === id ? { ...m, [k]: v } : m)); }
   function removeMod(id) { set("modules", p.modules.filter(m => m.id !== id)); }
 
   return (
     <div>
-      <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 12 }}>
+      <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>
         Course Modules <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.modules.length})</span>
+      </div>
+      <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 12 }}>
+        Phase / Title<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> is required per module.
       </div>
       {p.modules.length === 0 && (
         <div style={{ textAlign: "center", padding: "28px 0", marginBottom: 12, color: T.muted, fontFamily: T.sans, fontSize: 13, background: T.surface, borderRadius: 10, border: `1px dashed ${T.border}` }}>
@@ -972,25 +1008,43 @@ function TabModules({ p, set }) {
         <div key={mod.id} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <span style={{ fontFamily: T.mono, fontSize: 11, color: T.muted, minWidth: 22 }}>{String(i + 1).padStart(2, "0")}</span>
-            <div style={{ flex: 1 }}><Inp value={mod.phase} onChange={e => updateMod(mod.id, "phase", e.target.value)} placeholder="Phase / Module title" /></div>
-            <div style={{ width: 90 }}><Inp value={mod.weeks} onChange={e => updateMod(mod.id, "weeks", e.target.value)} placeholder="Weeks" /></div>
-            <div style={{ width: 90 }}><Inp value={mod.duration} onChange={e => updateMod(mod.id, "duration", e.target.value)} placeholder="Duration" /></div>
+            <div style={{ flex: 1 }}>
+              <Inp
+                value={mod.phase}
+                onChange={e => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, phase: e.target.value } : m))}
+                placeholder="Phase / Module title *"
+              />
+            </div>
+            <div style={{ width: 90 }}>
+              <Inp value={mod.weeks} onChange={e => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, weeks: e.target.value } : m))} placeholder="Weeks" />
+            </div>
+            <div style={{ width: 90 }}>
+              <Inp value={mod.duration} onChange={e => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, duration: e.target.value } : m))} placeholder="Duration" />
+            </div>
             <DelBtn onClick={() => removeMod(mod.id)} />
           </div>
           <div style={{ marginBottom: 10 }}>
-            <Txa value={mod.desc} onChange={e => updateMod(mod.id, "desc", e.target.value)} placeholder="What will the learner do in this module?" rows={2} />
+            <Txa value={mod.desc} onChange={e => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, desc: e.target.value } : m))} placeholder="What will the learner do in this module?" rows={2} />
           </div>
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontFamily: T.sans, fontSize: 11, fontWeight: 600, color: T.muted, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 6 }}>PDF Material</div>
             <PdfUpload
               pdfName={mod.pdfName} pdfUrl={mod.pdfUrl}
-              onUpload={({ pdfName, pdfUrl, pdfFile }) => updateMod(mod.id, "pdfName", pdfName) || updateMod(mod.id, "pdfUrl", pdfUrl) || updateMod(mod.id, "pdfFile", pdfFile)}
-              onRemove={() => { updateMod(mod.id, "pdfName", ""); updateMod(mod.id, "pdfUrl", ""); updateMod(mod.id, "pdfFile", null); }}
+              onUpload={({ pdfName, pdfUrl, pdfPublicId }) => {
+                set("modules", p.modules.map(m =>
+                  m.id === mod.id ? { ...m, pdfName, pdfUrl, pdfPublicId } : m
+                ));
+              }}
+              onRemove={() => {
+                set("modules", p.modules.map(m =>
+                  m.id === mod.id ? { ...m, pdfName: "", pdfUrl: "", pdfPublicId: "" } : m
+                ));
+              }}
             />
           </div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <Tog value={mod.completed} onChange={v => updateMod(mod.id, "completed", v)} label="Mark completed" />
-            <Tog value={mod.locked} onChange={v => updateMod(mod.id, "locked", v)} label="Lock module" />
+            <Tog value={mod.completed} onChange={v => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, completed: v } : m))} label="Mark completed" />
+            <Tog value={mod.locked} onChange={v => set("modules", p.modules.map(m => m.id === mod.id ? { ...m, locked: v } : m))} label="Lock module" />
           </div>
         </div>
       ))}
@@ -1000,18 +1054,41 @@ function TabModules({ p, set }) {
 }
 
 function TabMedia({ p, set }) {
-  function addGallery() { set("gallery", [...p.gallery, { id: uid(), src: "", caption: "" }]); }
+  function addGallery() { set("gallery", [...p.gallery, { id: uid(), url: "", publicId: "", originalName: "", caption: "" }]); }
   function addChallenge() { set("challenges", [...p.challenges, { id: uid(), title: "", body: "" }]); }
 
   return (
     <div>
       {/* Gallery */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 12 }}>Gallery <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.gallery.length})</span></div>
+        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>
+          Gallery <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.gallery.length})</span>
+        </div>
+        <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Image upload<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> is required per item.
+        </div>
         {p.gallery.map(item => (
           <div key={item.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-            <div style={{ flex: 2 }}><Inp value={item.src} onChange={e => set("gallery", p.gallery.map(g => g.id === item.id ? { ...g, src: e.target.value } : g))} placeholder="Image URL" /></div>
-            <div style={{ flex: 1 }}><Inp value={item.caption} onChange={e => set("gallery", p.gallery.map(g => g.id === item.id ? { ...g, caption: e.target.value } : g))} placeholder="Caption" /></div>
+            <div style={{ flex: 2 }}>
+              <ImageUpload
+                url={item.url}
+                originalName={item.originalName}
+                onUpload={({ url, publicId, originalName }) =>
+                  set("gallery", p.gallery.map(g =>
+                    g.id === item.id ? { ...g, url, publicId, originalName } : g
+                  ))
+                }
+                onRemove={() =>
+                  set("gallery", p.gallery.map(g =>
+                    g.id === item.id ? { ...g, url: "", publicId: "", originalName: "" } : g
+                  ))
+                }
+                label="Upload Image"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Inp value={item.caption} onChange={e => set("gallery", p.gallery.map(g => g.id === item.id ? { ...g, caption: e.target.value } : g))} placeholder="Caption" />
+            </div>
             <DelBtn onClick={() => set("gallery", p.gallery.filter(g => g.id !== item.id))} />
           </div>
         ))}
@@ -1020,10 +1097,17 @@ function TabMedia({ p, set }) {
 
       {/* Challenges */}
       <div>
-        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 12 }}>Challenges <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.challenges.length})</span></div>
+        <div style={{ fontFamily: T.sans, fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>
+          Challenges <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>({p.challenges.length})</span>
+        </div>
+        <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Title<span style={{ color: "#F87171", marginLeft: 3 }}>*</span> is required per item.
+        </div>
         {p.challenges.map(item => (
           <div key={item.id} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", marginBottom: 10 }}>
-            <div style={{ marginBottom: 8 }}><Inp value={item.title} onChange={e => set("challenges", p.challenges.map(c => c.id === item.id ? { ...c, title: e.target.value } : c))} placeholder="Challenge title" /></div>
+            <div style={{ marginBottom: 8 }}>
+              <Inp value={item.title} onChange={e => set("challenges", p.challenges.map(c => c.id === item.id ? { ...c, title: e.target.value } : c))} placeholder="Challenge title *" />
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}>
                 <Txa value={item.body} onChange={e => set("challenges", p.challenges.map(c => c.id === item.id ? { ...c, body: e.target.value } : c))} placeholder="Describe the challenge and how it's overcome" rows={2} />
@@ -1110,11 +1194,13 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
   const [previewTab, setPTab] = useState(0); // 0=card, 1=learning
   const [picker, setPicker] = useState(null); // {field, id}
   const [saved, setSaved] = useState(false);
+  const [publishErrors, setPublishErrors] = useState([]);
   const bodyRef = useRef(null);
 
   const set = useCallback((key, value) => {
     setProject(p => ({ ...p, [key]: value }));
     setSaved(false);
+    setPublishErrors([]);
   }, []);
 
   // Reset scroll on tab change
@@ -1137,6 +1223,46 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
   }
 
   function handlePublish() {
+    const errors = [];
+
+    if (!project.name.trim())
+      errors.push("Project Name is required.");
+    if (!project.description.trim())
+      errors.push("Description is required.");
+
+    project.stack.forEach((item, i) => {
+      if (!item.name.trim())
+        errors.push(`Tech Stack item #${i + 1}: Name is required.`);
+    });
+    project.metrics.forEach((item, i) => {
+      if (!item.value.trim())
+        errors.push(`Metric #${i + 1}: Value is required.`);
+      if (!item.label.trim())
+        errors.push(`Metric #${i + 1}: Label is required.`);
+    });
+    project.features.forEach((item, i) => {
+      if (!item.label.trim())
+        errors.push(`Feature #${i + 1}: Label is required.`);
+    });
+    project.modules.forEach((item, i) => {
+      if (!item.phase.trim())
+        errors.push(`Module #${i + 1}: Phase / Title is required.`);
+    });
+    project.challenges.forEach((item, i) => {
+      if (!item.title.trim())
+        errors.push(`Challenge #${i + 1}: Title is required.`);
+    });
+    project.gallery.forEach((item, i) => {
+      if (!item.url)
+        errors.push(`Gallery image #${i + 1}: An uploaded image is required.`);
+    });
+
+    if (errors.length > 0) {
+      setPublishErrors(errors);
+      return;
+    }
+
+    setPublishErrors([]);
     const output = {
       id: project.id, name: project.name,
       slug: project.slug || slugify(project.name),
@@ -1246,6 +1372,33 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
                 </div>
               </div>
 
+              {/* ── VALIDATION ERRORS ── */}
+              {publishErrors.length > 0 && (
+                <div style={{
+                  flexShrink: 0, padding: "10px 24px",
+                  background: "rgba(248,113,113,0.07)",
+                  borderBottom: `1px solid rgba(248,113,113,0.2)`,
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                }}>
+                  <AlertCircle size={15} color="#F87171" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: T.sans, fontSize: 12, fontWeight: 600, color: "#F87171", marginBottom: 4 }}>
+                      Please fix the following before publishing:
+                    </div>
+                    <ul style={{ margin: 0, padding: "0 0 0 16px", listStyle: "disc" }}>
+                      {publishErrors.map((e, i) => (
+                        <li key={i} style={{ fontFamily: T.sans, fontSize: 12, color: "#F87171", lineHeight: 1.7 }}>{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button
+                    onClick={() => setPublishErrors([])}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#F87171", display: "flex", padding: 2, flexShrink: 0 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               {/* ── BODY ── */}
               <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 360px", overflow: "hidden" }}>
 
@@ -1315,7 +1468,7 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
                     })}
                   </div>
 
-                  {/* Preview content (sticky via flex) */}
+                  {/* Preview content */}
                   <div className="bw-drawer-body" style={{ flex: 1, overflowY: "auto", padding: 16 }}>
                     <AnimatePresence mode="wait">
                       <motion.div key={previewTab}

@@ -103,6 +103,14 @@ const moduleSchema = new Schema(
       default: "",
     },
 
+    // Added: Cloudinary public_id for the module PDF.
+    // Required for server-side deletion and asset management.
+    // Empty string default preserves compatibility with existing documents.
+    pdfPublicId: {
+      type: String,
+      default: "",
+    },
+
     locked: {
       type: Boolean,
       default: false,
@@ -116,11 +124,26 @@ const moduleSchema = new Schema(
   { timestamps: true }
 );
 
+// Modified: gallerySchema now stores Cloudinary metadata instead of a raw src URL.
+// url replaces src as the CDN delivery URL (field renamed to align with frontend state).
+// publicId and originalName are added for Cloudinary asset management.
+// caption is unchanged.
+// _id: false preserved to avoid unnecessary subdocument IDs.
 const gallerySchema = new Schema(
   {
-    src: {
+    url: {
       type: String,
       required: true,
+    },
+
+    publicId: {
+      type: String,
+      default: "",
+    },
+
+    originalName: {
+      type: String,
+      default: "",
     },
 
     caption: {
@@ -139,6 +162,29 @@ const challengeSchema = new Schema(
     },
 
     body: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+// Subdocument schema for the cover image Cloudinary metadata.
+// Used as an embedded object under projectSchema.cover.
+// _id: false avoids a redundant subdocument ID on a single embedded object.
+const coverSchema = new Schema(
+  {
+    url: {
+      type: String,
+      default: "",
+    },
+
+    publicId: {
+      type: String,
+      default: "",
+    },
+
+    originalName: {
       type: String,
       default: "",
     },
@@ -212,9 +258,13 @@ const projectSchema = new Schema(
       default: "",
     },
 
+    // Modified: cover was a flat String.
+    // Now an embedded object (coverSchema) storing url, publicId, and originalName.
+    // Field name is unchanged. Default produces an empty object with empty string fields,
+    // which is safe for existing documents — Mongoose fills missing subdoc fields with defaults.
     cover: {
-      type: String,
-      default: "",
+      type: coverSchema,
+      default: () => ({ url: "", publicId: "", originalName: "" }),
     },
 
     problem: {
@@ -308,5 +358,15 @@ const projectSchema = new Schema(
     timestamps: true,
   }
 );
+
+// ======================
+// INDEXES
+// ======================
+
+// slug already has a unique constraint above which creates an index implicitly.
+// Declaring it here explicitly makes the intent clear and allows index options to be set centrally.
+projectSchema.index({ category: 1 });
+projectSchema.index({ difficulty: 1 });
+projectSchema.index({ featured: 1 });
 
 export const Project = mongoose.model("Project", projectSchema);

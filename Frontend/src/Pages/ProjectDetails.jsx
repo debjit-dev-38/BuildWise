@@ -517,7 +517,7 @@ export default function ProjectDetails() {
               <div style={{ position: "absolute", inset: 0, borderRadius: 28, boxShadow: "inset 0 0 0 1px rgba(110,231,183,0.12)" }} />
 
               {/* Play button */}
-              <div  onClick={()=>navigate(`/learningpage/${projectDetails.slug}`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div  onClick={()=>navigate(`/projectdetails/${slug}/learningpage`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
                   style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white"/>
