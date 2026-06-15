@@ -234,7 +234,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
                 console.log("STATUS:", error.response?.status);
                 console.log("DATA:", error.response?.data);
                 console.log(error);
-            }
+              }
             }}
           />
 
@@ -245,22 +245,39 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+
 const difficultyColor = (d) => ({
-  Beginner: "text-emerald-400 bg-emerald-400/8 border-emerald-400/15",
-  Intermediate: "text-white/50 bg-white/5 border-white/10",
-  Advanced: "text-rose-400 bg-rose-400/8 border-rose-400/15",
+  Beginner:
+    "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
+
+  Intermediate:
+    "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
+
+  Advanced:
+    "text-red-400 bg-red-500/15 border-red-500/30",
 }[d] || "text-white/35 bg-white/4 border-white/8");
 
 const statusColor = (s) => ({
-  Published: "text-emerald-400 bg-emerald-400/8 border-emerald-400/15",
-  Draft: "text-white/35 bg-white/4 border-white/8",
-  Review: "text-white/60 bg-white/5 border-white/10",
+  completed:
+    "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
+
+  Draft:
+    "text-white/35 bg-white/4 border-white/8",
+
+  Review:
+    "text-white/60 bg-white/5 border-white/10",
 }[s] || "text-white/35 bg-white/4 border-white/8");
 
 const roleColor = (r) => ({
-  admin: "text-emerald-400 bg-emerald-400/8 border-emerald-400/15",
-  moderator: "text-white/60 bg-white/5 border-white/10",
-  user: "text-white/35 bg-white/4 border-white/8",
+  admin:
+    "text-pink-400 bg-pink-500/15 border-pink-500/30",
+
+  moderator:
+    "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
+
+  user:
+    "text-white/60 bg-white/5 border-white/10",
 }[r] || "text-white/35 bg-white/4 border-white/8");
 
 const fadeUp = (delay = 0) => ({
@@ -447,13 +464,22 @@ function AchievementModal({ onClose, initial = null, onSave }) {
 function ProjectManagement({ projects, setProjects, onAddProject }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
-
   const filtered = projects.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "All" || p.difficulty === filter;
     return matchSearch && matchFilter;
   });
+  const removeProject = async (id) => {
+  try {
+    await axios.delete(
+      `${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`
+    );
 
+    setProjects((prev) => prev.filter((x) => x._id !== id));
+  } catch (error) {
+    console.error(error);
+  }
+};
   // TODO: Fetch projects from database
   // TODO: Create project API
   // TODO: Update project API
@@ -493,32 +519,35 @@ function ProjectManagement({ projects, setProjects, onAddProject }) {
           </thead>
           <tbody>
             <AnimatePresence>
-              {filtered.map((p, i) => (
-                <motion.tr key={p.id}
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="border-b border-white/4 last:border-0 hover:bg-white/2 transition-colors group">
-                  <td className="py-3 pr-6 font-medium text-white/85 whitespace-nowrap text-sm">{p.name}</td>
-                  <td className="py-3 pr-6 text-white/40 whitespace-nowrap text-xs">{p.category}</td>
-                  <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.difficulty} colorClass={difficultyColor(p.difficulty)} /></td>
-                  <td className="py-3 pr-6">
-                    <div className="flex gap-1 flex-wrap">
-                      {p.tech.slice(0, 3).map((t) => (
-                        <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-white/4 text-white/40 border border-white/6">{t}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.status} colorClass={statusColor(p.status)} /></td>
-                  <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.created}</td>
-                  <td className="py-3">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
-                      <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
-                      <GhostButton small danger icon={Trash2} onClick={() => setProjects((prev) => prev.filter((x) => x.id !== p.id))}>Del</GhostButton>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+              {filtered.map((p, i) => {
+                return (
+
+                  <motion.tr key={p._id}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="border-b border-white/4 last:border-0 hover:bg-white/2 transition-colors group">
+                    <td className="py-3 pr-6 font-medium text-white/85 whitespace-nowrap text-sm">{p.name}</td>
+                    <td className="py-3 pr-6 text-white/40 whitespace-nowrap text-xs">{p.category}</td>
+                    <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.difficulty} colorClass={difficultyColor(p.difficulty)} /></td>
+                    <td className="py-3 pr-6">
+                      <div className="flex gap-1 flex-wrap">
+                        {p.stack.map((t) => (
+                          <span key={t.name} className="text-xs px-1.5 py-0.5 rounded bg-white/4 text-white/40 border border-white/6">{t.name}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.status} colorClass={statusColor(p.status)} /></td>
+                    <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.createdAt}</td>
+                    <td className="py-3">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
+                        <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
+                        <GhostButton small danger icon={Trash2}  onClick={() => removeProject(p._id)}>Del</GhostButton>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </AnimatePresence>
           </tbody>
         </table>

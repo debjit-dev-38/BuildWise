@@ -71,4 +71,29 @@ const uploadPdf = asyncHandler(async (req, res) => {
     );
 });
 
-export { addProject,uploadImage,uploadPdf }
+const getProject=asyncHandler(async(req,res)=>{
+    const projects= await Project.find();
+    return res.status(200).json(
+        new ApiResponse(200,projects,"Projects fetched successfully")
+    )
+})
+
+const deleteProject=asyncHandler(async(req,res)=>{
+
+
+    await Project.findByIdAndDelete(req.params.id)
+    return res.status(200).json(
+        new ApiResponse(200,"Project deleted successfully")
+    )
+})
+
+const getProjectBySlug=asyncHandler(async(req,res)=>{
+    const {slug}= req.params
+
+    const project= await Project.findOne({slug});
+    return res.status(200).json(
+        new ApiResponse(200,project,"Projects fetched successfully")
+    )
+})
+
+export {getProjectBySlug,deleteProject,getProject, addProject,uploadImage,uploadPdf }

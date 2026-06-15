@@ -5,6 +5,8 @@
 
 import {
   Sparkles,
+  Database,
+  Shield,
   Monitor,
   Server,
   Layers,
@@ -20,12 +22,22 @@ import {
 
 export const categories = [
   { id: "all", label: "All", icon: Sparkles },
-  { id: "frontend", label: "Frontend", icon: Monitor },
-  { id: "backend", label: "Backend", icon: Server },
-  { id: "fullstack", label: "Full Stack", icon: Layers },
-  { id: "ai", label: "AI / ML", icon: Brain },
-  { id: "mobile", label: "Mobile", icon: Smartphone },
-  { id: "devops", label: "DevOps", icon: Container },
+
+  { id: "Frontend", label: "Frontend", icon: Monitor },
+
+  { id: "Backend", label: "Backend", icon: Server },
+
+  { id: "Full Stack", label: "Full Stack", icon: Layers },
+
+  { id: "Mobile", label: "Mobile", icon: Smartphone },
+
+  { id: "DevOps", label: "DevOps", icon: Container },
+
+  { id: "AI/ML", label: "AI/ML", icon: Brain },
+
+  { id: "Data", label: "Data", icon: Database },
+
+  { id: "Security", label: "Security", icon: Shield },
 ];
 
 export const difficulties = [
@@ -33,7 +45,6 @@ export const difficulties = [
   "Beginner",
   "Intermediate",
   "Advanced",
-  "Expert",
 ];
 
 export const durations = [

@@ -1,6 +1,7 @@
 import { projects } from "../data/projects.js";
 import { projectDetails } from "../data/projectDetails.js";
 import { matchDurationFilter } from "../data/filters.js";
+import axios from "axios";
 
 // ─────────────────────────────────────────────
 // Project Service
@@ -16,15 +17,20 @@ import { matchDurationFilter } from "../data/filters.js";
 // ─────────────────────────────────────────────
 
 export const getProjects = async () => {
-  return projects;
+  const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`)
+  return res.data.data
 };
 
 export const getProjectById = async (id) => {
-  return projects.find((p) => p.id === Number(id)) ?? null;
+  return projects.find((p) => p.id === Number(id)) ?? null;  //not required
 };
 
 export const getProjectBySlug = async (slug) => {
-  return projects.find((p) => p.slug === slug) ?? null;
+  const res = await axios.get(
+    `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${slug}`
+  );
+
+  return res.data.data;
 };
 
 export const getFeaturedProjects = async () => {
@@ -36,12 +42,12 @@ export const getRecommendedProjects = async () => {
 };
 
 export const getNewestProjects = async () => {
-  return projects.filter((p) => p.newest);
+  return projects.filter((p) => p.newest); //na
 };
 
 export const getProjectsByCategory = async (categoryId) => {
   if (!categoryId || categoryId === "all") return projects;
-  return projects.filter((p) => p.category === categoryId);
+  return projects.filter((p) => p.category === categoryId); //ma
 };
 
 export const getProjectDetails = async (slug) => {
@@ -72,15 +78,20 @@ export const getRelatedProjects = async (slug) => {
  * @param {string} opts.sort         - sort option id
  * @param {string} opts.search       - freetext search
  */
-export const filterProjects = async ({
-  category = "all",
-  difficulty = "All",
-  duration = "Any",
-  techStack = [],
-  sort = "popular",
-  search = "",
-} = {}) => {
+export const filterProjects = async (
+  projects,
+  {
+    category = "all",
+    difficulty = "All",
+    duration = "Any",
+    techStack = [],
+    sort = "popular",
+    search = "",
+  } = {}
+) => {
   let result = [...projects];
+
+
 
   if (category !== "all") {
     result = result.filter((p) => p.category === category);
@@ -96,17 +107,26 @@ export const filterProjects = async ({
 
   if (techStack.length > 0) {
     result = result.filter((p) =>
-      techStack.every((t) => p.stack.includes(t))
+      techStack.every((t) =>
+        (p.stack || []).some((s) =>
+          (typeof s === "string" ? s : s?.name) === t
+        )
+      )
     );
   }
 
   if (search.trim()) {
     const q = search.toLowerCase();
+
     result = result.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.desc.toLowerCase().includes(q) ||
-        p.stack.some((s) => s.toLowerCase().includes(q))
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q) ||
+        (p.stack || []).some((s) =>
+          (typeof s === "string" ? s : s?.name || "")
+            .toLowerCase()
+            .includes(q)
+        )
     );
   }
 

@@ -10,7 +10,7 @@ import {
   chartProjectViews,
   chartPathCompletions,
 } from "../data/admin.js";
-
+ import axios from "axios";
 // ─────────────────────────────────────────────
 // Admin Service
 // Will map to: GET /api/admin/*
@@ -21,7 +21,8 @@ export const getPlatformMetrics = async () => {
 };
 
 export const getAdminProjects = async () => {
-  return adminProjects;
+  const res=await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`)
+  return res.data.data
 };
 
 export const getAdminLearningPaths = async () => {

@@ -478,16 +478,16 @@ export default function ProjectDetails() {
   // ── Hydrate iconKey → Lucide component for each field that needs it ──────
   // This is the ONLY place in the app that resolves icon strings.
   // Data files stay pure JS; components get real icon components.
-  const features = hydrateIcons(details.features);
-  const stackItems = hydrateIcons(details.stack);
-  const metrics = hydrateIcons(details.metrics);
+  const features = hydrateIcons(project.features);
+  const stackItems = hydrateIcons(project.stack);
+  const metrics = hydrateIcons(project.metrics);
 
   // Merge card-level data (project) with detail data so we always have a title
   // even when the detail is for a standalone showcase (projectId: null)
-  const title = details.title ?? project?.name ?? "";
-  const summary = details.summary ?? project?.desc ?? "";
-  const cover = details.cover ?? "";
-  const status = details.status ?? "Live";
+  const title =  project?.name ?? "";
+  const summary = project?.summary ?? "";
+  const cover = details.cover ??project.cover??  "";
+  const status = project.status ?? "Live";
 
   return (
     <div style={S.page} data-scroll-container>
@@ -581,7 +581,7 @@ export default function ProjectDetails() {
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#F87171", opacity: 0.7 }}>Problem Statement</div>
                   </div>
-                  <p style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.75, fontSize: 15, margin: 0 }}>{details.problem}</p>
+                  <p style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.75, fontSize: 15, margin: 0 }}>{project.problem}</p>
                 </GlassCard>
               </ScrollReveal>
 
@@ -594,7 +594,7 @@ export default function ProjectDetails() {
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#6EE7B7", opacity: 0.8 }}>Solution</div>
                   </div>
-                  <p style={{ color: "rgba(255,255,255,0.75)", lineHeight: 1.75, fontSize: 15, margin: 0 }}>{details.solution}</p>
+                  <p style={{ color: "rgba(255,255,255,0.75)", lineHeight: 1.75, fontSize: 15, margin: 0 }}>{project.solution}</p>
                 </GlassCard>
               </ScrollReveal>
 
@@ -635,7 +635,7 @@ export default function ProjectDetails() {
                   <div style={{ position: "relative", paddingLeft: 32 }}>
                     <div style={{ position: "absolute", left: 10, top: 16, bottom: 16, width: 1, background: "linear-gradient(to bottom, rgba(252,211,77,0.4), rgba(252,211,77,0.1))" }} />
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      {details.challenges.map(({ title: cTitle, body }, i) => (
+                      {project.challenges.map(({ title: cTitle, body }, i) => (
                         <ScrollReveal key={cTitle} delay={i * 0.08}>
                           <div style={{ position: "relative" }}>
                             <div style={{ position: "absolute", left: -32, top: 16, width: 20, height: 20, borderRadius: "50%", background: "rgba(252,211,77,0.1)", border: "1px solid rgba(252,211,77,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -660,7 +660,7 @@ export default function ProjectDetails() {
                   <div style={{ position: "relative" }}>
                     <div style={{ position: "absolute", left: 18, top: 0, bottom: 0, width: 1, background: "linear-gradient(to bottom, rgba(110,231,183,0.3), rgba(129,140,248,0.15))" }} />
                     <div style={{ display: "flex", flexDirection: "column", gap: 20, paddingLeft: 52 }}>
-                      {details.timeline.map(({ phase, weeks, desc }, i) => (
+                      {project.modules.map(({ phase, weeks, desc }, i) => (
                         <ScrollReveal key={phase} delay={i * 0.07}>
                           <div style={{ position: "relative" }}>
                             <motion.div

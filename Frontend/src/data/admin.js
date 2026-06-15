@@ -19,12 +19,12 @@ export const platformMetrics = {
 // Admin project table — mirrors structure from projects.js
 // but with admin-specific fields (status, created date)
 export const adminProjects = [
-  { id: 1,  name: "Todo App with Auth",      category: "Web Dev",    difficulty: "Beginner",     tech: ["React","Firebase"],             status: "Published", created: "2024-11-01" },
-  { id: 2,  name: "E-Commerce Dashboard",    category: "Full Stack", difficulty: "Intermediate", tech: ["Next.js","MongoDB","Stripe"],    status: "Published", created: "2024-11-08" },
-  { id: 3,  name: "AI Chat Interface",       category: "AI/ML",      difficulty: "Advanced",     tech: ["Python","FastAPI","OpenAI"],     status: "Draft",     created: "2024-11-15" },
-  { id: 4,  name: "Portfolio Generator",     category: "Web Dev",    difficulty: "Beginner",     tech: ["HTML","CSS","JS"],              status: "Published", created: "2024-11-20" },
-  { id: 5,  name: "Real-Time Chat App",      category: "Full Stack", difficulty: "Intermediate", tech: ["React","Socket.io","Node"],      status: "Review",    created: "2024-11-28" },
-  { id: 6,  name: "Blockchain Wallet",       category: "Web3",       difficulty: "Advanced",     tech: ["Solidity","Ethers.js","React"],  status: "Draft",     created: "2024-12-03" },
+  { id: 1,  name: "Todo App with Auth",      category: "Web Dev",    difficulty: "Beginner",     stack: ["React","Firebase"],             status: "Published", createdAt: "2024-11-01" },
+  { id: 2,  name: "E-Commerce Dashboard",    category: "Full Stack", difficulty: "Intermediate", stack: ["Next.js","MongoDB","Stripe"],    status: "Published", createdAt: "2024-11-08" },
+  { id: 3,  name: "AI Chat Interface",       category: "AI/ML",      difficulty: "Advanced",     stack: ["Python","FastAPI","OpenAI"],     status: "Draft",     createdAt: "2024-11-15" },
+  { id: 4,  name: "Portfolio Generator",     category: "Web Dev",    difficulty: "Beginner",     stack: ["HTML","CSS","JS"],              status: "Published", createdAt: "2024-11-20" },
+  { id: 5,  name: "Real-Time Chat App",      category: "Full Stack", difficulty: "Intermediate", stack: ["React","Socket.io","Node"],      status: "Review",    createdAt: "2024-11-28" },
+  { id: 6,  name: "Blockchain Wallet",       category: "Web3",       difficulty: "Advanced",     stack: ["Solidity","Ethers.js","React"],  status: "Draft",     createdAt: "2024-12-03" },
 ];
 
 export const adminLearningPaths = [

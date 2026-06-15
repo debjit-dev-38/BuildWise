@@ -51,10 +51,32 @@ function diffColor(d) {
         : { bg: "rgba(249,168,212,0.12)", text: "#F9A8D4" };
 }
 
-function formatLearners(n) {
+function formatLearners(n = 0) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toString();
 }
 
+
+function getMetric(project, label) {
+  return project.metrics?.find(
+    m => m.label.toLowerCase() === label.toLowerCase()
+  );
+}
+
+function getLearners(project) {
+  const metric = project.metrics?.find(
+    m => m.label.toLowerCase() === "learners"
+  );
+
+  return metric?.num || 0;
+}
+
+function getRating(project) {
+  const metric = project.metrics?.find(
+    m => m.label.toLowerCase() === "rating"
+  );
+
+  return metric?.num || 0;
+}
 // ── HOOKS ────────────────────────────────────────────────────────────────────
 
 function useCountUp(target, isInView) {
@@ -292,6 +314,7 @@ function Hero({ search, setSearch, activeCategory, setActiveCategory, activeDiff
 // ── FEATURED BANNER ──────────────────────────────────────────────────────────
 
 function FeaturedBanner({ project }) {
+  const accent = COLORS[project.color] ?? COLORS.green;
   const [hov, setHov] = useState(false);
   const dc = diffColor(project.difficulty);
   return (
@@ -309,18 +332,18 @@ function FeaturedBanner({ project }) {
         <div
           style={{
             borderRadius: 18, overflow: "hidden",
-            border: hov ? `1px solid ${project.color}33` : "1px solid rgba(255,255,255,0.08)",
+            border: hov ? `1px solid ${accent}33` : "1px solid rgba(255,255,255,0.08)",
             background: "rgba(255,255,255,0.02)",
             backdropFilter: "blur(20px)",
             transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
             transform: hov ? "translateY(-3px)" : "translateY(0)",
-            boxShadow: hov ? `0 24px 80px ${project.color}10` : "none",
+            boxShadow: hov ? `0 24px 80px ${accent}10` : "none",
             display: "flex", flexWrap: "wrap",
           }}>
           {/* Visual side */}
           <div style={{
             flex: "1 1 320px", minHeight: 280,
-            background: `radial-gradient(ellipse at 30% 50%, ${project.color}18 0%, rgba(255,255,255,0.02) 70%)`,
+            background: `radial-gradient(ellipse at 30% 50%, ${accent}18 0%, rgba(255,255,255,0.02) 70%)`,
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative", overflow: "hidden",
             borderRight: "1px solid rgba(255,255,255,0.06)",
@@ -329,17 +352,17 @@ function FeaturedBanner({ project }) {
             <motion.div
               animate={{ scale: hov ? 1.05 : 1 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ position: "relative", width: 100, height: 100, borderRadius: 20, background: `${project.color}18`, border: `1px solid ${project.color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 28, color: project.color }}>
+              style={{ position: "relative", width: 100, height: 100, borderRadius: 20, background: `${accent}18`, border: `1px solid ${accent}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 28, color: accent }}>
               {project.image}
             </motion.div>
             {/* Floating chip */}
             <div style={{ position: "absolute", bottom: 20, left: 20, background: "rgba(10,10,10,0.7)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6 }}>
               <Star size={11} color="#FCD34D" fill="#FCD34D" />
-              <span style={{ fontSize: 12, color: "#e5e5e5", fontWeight: 600 }}>{project.rating} rating</span>
+              <span style={{ fontSize: 12, color: "#e5e5e5", fontWeight: 600 }}> {getRating(project)} rating</span>
             </div>
             <div style={{ position: "absolute", top: 20, right: 20, background: "rgba(10,10,10,0.7)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 12px", display: "flex", alignItems: "center", gap: 6 }}>
               <Users size={11} color="#818CF8" />
-              <span style={{ fontSize: 12, color: "#e5e5e5" }}>{formatLearners(project.learners)} learners</span>
+              <span style={{ fontSize: 12, color: "#e5e5e5" }}>{formatLearners(getLearners(project))} learners</span>
             </div>
           </div>
 
@@ -357,14 +380,26 @@ function FeaturedBanner({ project }) {
               </div>
             </div>
             <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 32, color: "#f0f0f0", lineHeight: 1.15, letterSpacing: "-0.02em" }}>{project.name}</h3>
-            <p style={{ fontSize: 15, color: "#666", lineHeight: 1.7, maxWidth: 480 }}>{project.desc}</p>
+            <p style={{ fontSize: 15, color: "#666", lineHeight: 1.7, maxWidth: 480 }}>{project.description}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {project.stack.map(t => (
-                <span key={t} style={{ fontSize: 12, background: "rgba(255,255,255,0.06)", color: "#888", padding: "4px 10px", borderRadius: 6 }}>{t}</span>
+                <span
+                  key={t.name}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: 6,
+                    fontSize: 11,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    color: "#777",
+                  }}
+                >
+                  {t.name}
+                </span>
               ))}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
-              <PrimaryBtn>Start Project <ArrowRight size={14} /></PrimaryBtn>
+              <PrimaryBtn >Start Project <ArrowRight size={14} /></PrimaryBtn>
               <GhostBtn>Preview <ExternalLink size={13} /></GhostBtn>
             </div>
           </div>
@@ -377,6 +412,7 @@ function FeaturedBanner({ project }) {
 // ── PROJECT CARD ─────────────────────────────────────────────────────────────
 
 function ProjectCard({ project, index }) {
+  const accent = COLORS[project.color] ?? COLORS.green;
   const navigate = useNavigate();
   const [hov, setHov] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -395,18 +431,18 @@ function ProjectCard({ project, index }) {
         onMouseLeave={() => setHov(false)}
         style={{
           borderRadius: 14, overflow: "hidden",
-          border: hov ? `1px solid ${project.color}33` : "1px solid rgba(255,255,255,0.07)",
+          border: hov ? `1px solid ${accent}33` : "1px solid rgba(255,255,255,0.07)",
           background: hov ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
           backdropFilter: "blur(20px)",
           transition: "all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)",
           transform: hov ? "translateY(-5px)" : "translateY(0)",
-          boxShadow: hov ? `0 20px 60px ${project.color}10` : "none",
+          boxShadow: hov ? `0 20px 60px ${accent}10` : "none",
           display: "flex", flexDirection: "column", height: "100%",
         }}>
         {/* Thumbnail */}
         <div style={{
           height: 140, overflow: "hidden", position: "relative",
-          background: `radial-gradient(ellipse at 40% 60%, ${project.color}18 0%, rgba(255,255,255,0.02) 70%)`,
+          background: `radial-gradient(ellipse at 40% 60%, ${accent}18 0%, rgba(255,255,255,0.02) 70%)`,
           borderBottom: "1px solid rgba(255,255,255,0.06)",
         }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
@@ -414,7 +450,7 @@ function ProjectCard({ project, index }) {
             animate={{ scale: hov ? 1.08 : 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 60, height: 60, borderRadius: 14, background: `${project.color}18`, border: `1px solid ${project.color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 18, color: project.color }}>
+            <div style={{ width: 60, height: 60, borderRadius: 14, background: `${accent}18`, border: `1px solid ${accent}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 18, color: accent }}>
               {project.image}
             </div>
           </motion.div>
@@ -440,25 +476,50 @@ function ProjectCard({ project, index }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Star size={11} color="#FCD34D" fill="#FCD34D" />
-              <span style={{ fontSize: 11, color: "#888" }}>{project.rating}</span>
+              <span style={{ fontSize: 11, color: "#888" }}> {getRating(project)}</span>
             </div>
           </div>
 
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 600, color: "#e5e5e5", marginBottom: 6, lineHeight: 1.3 }}>{project.name}</h3>
-            <p style={{ fontSize: 12, color: "#555", lineHeight: 1.65 }}>{project.desc}</p>
+            <p style={{ fontSize: 12, color: "#555", lineHeight: 1.65 }}>{project.description}</p>
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: "auto" }}>
             {project.stack.slice(0, 3).map(t => (
-              <span key={t} style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", color: "#777", padding: "3px 8px", borderRadius: 5 }}>{t}</span>
+              <span
+                key={t.name}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: 5,
+                  fontSize: 10,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  color: "#666",
+                }}
+              >
+                {t.name}
+              </span>
             ))}
-            {project.stack.length > 3 && <span style={{ fontSize: 10, color: "#555", padding: "3px 0" }}>+{project.stack.length - 3}</span>}
+            {project.stack.length > 3 && (
+              <span
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: 5,
+                  fontSize: 10,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  color: "#666",
+                }}
+              >
+                +{project.stack.length - 3}
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 5, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <Users size={11} color="#555" />
-            <span style={{ fontSize: 11, color: "#555", flex: 1 }}>{formatLearners(project.learners)} learners</span>
+            <span style={{ fontSize: 11, color: "#555", flex: 1 }}>{formatLearners(getLearners(project))} learners</span>
           </div>
         </div>
 
@@ -466,9 +527,9 @@ function ProjectCard({ project, index }) {
         <div style={{ padding: "0 18px 16px" }}>
           <button onClick={() => navigate(`/projectdetails/${project.slug}`)} style={{
             width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 500,
-            background: hov ? `${project.color}15` : "rgba(255,255,255,0.04)",
-            border: `1px solid ${hov ? project.color + "40" : "rgba(255,255,255,0.08)"}`,
-            color: hov ? project.color : "#888",
+            background: hov ? `${accent}15` : "rgba(255,255,255,0.04)",
+            border: `1px solid ${hov ? accent + "40" : "rgba(255,255,255,0.08)"}`,
+            color: hov ? accent : "#888",
             cursor: "pointer", transition: "all 0.25s ease", fontFamily: "inherit",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}>
@@ -788,21 +849,24 @@ export default function Projects() {
   // Re-run filterProjects whenever any filter or sort option changes
   useEffect(() => {
     setLoading(true);
-    filterProjects({
-      category: activeCategory,
-      difficulty: activeDiff,
-      duration: activeDuration,
-      techStack: activeTech,
-      sort,
-      search,
-    })
+    filterProjects(
+      allProjects,
+      {
+        category: activeCategory,
+        difficulty: activeDiff,
+        duration: activeDuration,
+        techStack: activeTech,
+        sort,
+        search,
+      }
+    )
       .then((data) => {
         // Exclude the featured project from the browsable grid
-        setFiltered(data.filter((p) => !p.featured));
+        setFiltered(data);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [search, activeCategory, activeDiff, activeDuration, activeTech, sort]);
+  }, [allProjects, search, activeCategory, activeDiff, activeDuration, activeTech, sort]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -912,7 +976,7 @@ export default function Projects() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   <AnimatePresence mode="popLayout">
                     {paginated.map((p, i) => (
-                      <ProjectCard key={p.id} project={p} index={i} />
+                      <ProjectCard key={p._id} project={p} index={i} />
                     ))}
                   </AnimatePresence>
                 </div>
