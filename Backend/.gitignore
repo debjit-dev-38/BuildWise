@@ -1,0 +1,13 @@
+node_modules/
+.env
+
+# logs
+*.log
+npm-debug.log*
+
+# uploads/temp files
+public/temp/
+
+# build output (if applicable)
+dist/
+build/
