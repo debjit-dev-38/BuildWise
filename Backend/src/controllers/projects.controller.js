@@ -71,29 +71,112 @@ const uploadPdf = asyncHandler(async (req, res) => {
     );
 });
 
-const getProject=asyncHandler(async(req,res)=>{
-    const projects= await Project.find();
-    return res.status(200).json(
-        new ApiResponse(200,projects,"Projects fetched successfully")
-    )
-})
+const getProject = asyncHandler(async (req, res) => {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 9, 1);
 
-const deleteProject=asyncHandler(async(req,res)=>{
+    const {
+        category,
+        difficulty,
+        duration,
+        tech,        // comma-separated string, e.g. "react,node"
+        sort,
+        search,
+        featured,
+    } = req.query;
+
+    // ── Build the Mongo filter object ──────────────────────────────
+    const filter = {};
+
+    if (category && category !== "all") {
+        filter.category = category;
+    }
+
+    if (difficulty && difficulty !== "All") {
+        filter.difficulty = difficulty;
+    }
+
+    if (duration && duration !== "Any") {
+        filter.duration = duration; // adjust if duration is a range field instead
+    }
+
+    if (tech) {
+        const techArray = tech.split(",").map(t => t.trim()).filter(Boolean);
+        if (techArray.length) {
+            filter.stack = { $in: techArray }; // matches if stack array contains any of these
+        }
+    }
+
+    if (featured === "true") {
+        filter.featured = true;
+    }
+
+    if (search) {
+        filter.$text = { $search: search };
+    }
+
+    // ── Build the sort object ──────────────────────────────────────
+    const sortMap = {
+        popular: { "metrics.learners": -1 }, // adjust to your actual schema shape
+        newest: { createdAt: -1 },
+        rating: { "metrics.rating": -1 },
+        difficulty: { difficulty: 1 },
+    };
+    const sortQuery = sortMap[sort] || sortMap.popular;
+
+    // ── Run query + count in parallel ───────────────────────────────
+    const [projects, totalProjects] = await Promise.all([
+        Project.find(filter)
+            .select(
+                "_id name description color category difficulty duration stack metrics image featured newest recommended status"
+            )
+            .sort(sortQuery)
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean(),
+
+        Project.countDocuments(filter),
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                projects,
+                totalProjects,
+                page,
+                totalPages: Math.ceil(totalProjects / limit),
+                hasNextPage: page * limit < totalProjects,
+            },
+            "Projects fetched successfully"
+        )
+    );
+});
+/*
+Normally, when you use:const projects = await Project.find();
+Mongoose takes the data returned by MongoDB and wraps each document with extra features such as .save(), .validate(), .populate(), and change tracking. This requires additional processing and memory.
+When you use:
+const projects = await Project.find().lean();
+Mongoose skips all that extra work and returns the raw data directly. The result is faster queries, lower memory usage, and better performance, especially when fetching many records.
+The tradeoff is that the returned objects no longer have Mongoose methods like .save() or .validate(). Therefore, .lean() is best used for read-only operations where you're simply fetching data and sending it to the frontend.
+For your getProject API, where you're only reading projects and returning JSON, using .lean() is a good optimization because you don't need any of Mongoose's document features.
+*/
+const deleteProject = asyncHandler(async (req, res) => {
 
 
     await Project.findByIdAndDelete(req.params.id)
     return res.status(200).json(
-        new ApiResponse(200,"Project deleted successfully")
+        new ApiResponse(200, "Project deleted successfully")
     )
 })
 
-const getProjectBySlug=asyncHandler(async(req,res)=>{
-    const {slug}= req.params
+const getProjectBySlug = asyncHandler(async (req, res) => {
+    const { slug } = req.params
 
-    const project= await Project.findOne({slug});
+    const project = await Project.findOne({ slug });
     return res.status(200).json(
-        new ApiResponse(200,project,"Projects fetched successfully")
+        new ApiResponse(200, project, "Projects fetched successfully")
     )
 })
 
-export {getProjectBySlug,deleteProject,getProject, addProject,uploadImage,uploadPdf }
+export { getProjectBySlug, deleteProject, getProject, addProject, uploadImage, uploadPdf }

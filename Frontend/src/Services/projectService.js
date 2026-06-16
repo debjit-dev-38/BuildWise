@@ -16,11 +16,32 @@ import axios from "axios";
 //   → const res = await api.get("/projects"); return res.data;
 // ─────────────────────────────────────────────
 
-export const getProjects = async () => {
-  const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`)
-  return res.data.data
-};
 
+
+export const getProjects= async({
+  page = 1,
+  limit = 9,
+  category,
+  difficulty,
+  duration,
+  tech = [],
+  sort,
+  search,
+} = {}) =>{
+  const params = {
+    page,
+    limit,
+    ...(category && category !== "all" && { category }),
+    ...(difficulty && difficulty !== "All" && { difficulty }),
+    ...(duration && duration !== "Any" && { duration }),
+    ...(tech.length > 0 && { tech: tech.join(",") }),
+    ...(sort && { sort }),
+    ...(search && { search }),
+  };
+
+  const { data } = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`, { params });
+  return data.data; // { projects, totalProjects, page, totalPages, hasNextPage }
+}
 export const getProjectById = async (id) => {
   return projects.find((p) => p.id === Number(id)) ?? null;  //not required
 };

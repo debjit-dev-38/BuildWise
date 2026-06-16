@@ -368,5 +368,7 @@ const projectSchema = new Schema(
 projectSchema.index({ category: 1 });
 projectSchema.index({ difficulty: 1 });
 projectSchema.index({ featured: 1 });
+projectSchema.index({ status: 1 });
+projectSchema.index({ name: "text", description: "text", stack: "text" });
 
 export const Project = mongoose.model("Project", projectSchema);

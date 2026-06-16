@@ -10,7 +10,7 @@ import {
   chartProjectViews,
   chartPathCompletions,
 } from "../data/admin.js";
- import axios from "axios";
+import axios from "axios";
 // ─────────────────────────────────────────────
 // Admin Service
 // Will map to: GET /api/admin/*
@@ -20,10 +20,31 @@ export const getPlatformMetrics = async () => {
   return platformMetrics;
 };
 
-export const getAdminProjects = async () => {
-  const res=await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`)
-  return res.data.data
-};
+export const getAdminProjects = async ({
+  page = 1,
+  limit = 9,
+  category,
+  difficulty,
+  duration,
+  tech = [],
+  sort,
+  search,
+} = {}) => {
+
+  const params = {
+    page,
+    limit,
+    ...(category && category !== "all" && { category }),
+    ...(difficulty && difficulty !== "All" && { difficulty }),
+    ...(duration && duration !== "Any" && { duration }),
+    ...(tech.length > 0 && { tech: tech.join(",") }),
+    ...(sort && { sort }),
+    ...(search && { search }),
+  };
+
+  const { data } = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`, { params });
+  return data.data; // { projects, totalProjects, page, totalPages, hasNextPage }
+}
 
 export const getAdminLearningPaths = async () => {
   return adminLearningPaths;

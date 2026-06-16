@@ -40,7 +40,6 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const [showAddProject, setShowAddProject] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [summary, setSummary] = useState(null);
-  const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
   const [paths, setPaths] = useState([]);
   const [badges, setBadges] = useState([]);
@@ -50,7 +49,6 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 
   useEffect(() => {
     getAdminDashboardSummary().then(setSummary);
-    getAdminProjects().then(setProjects);
     getAdminUsers().then(setUsers);
     getAdminLearningPaths().then(setPaths);
     getAdminAchievements().then(setBadges);
@@ -66,10 +64,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const sectionMap = {
     overview: null,
     projects: (
-      <ProjectManagement
-        projects={projects}
-        setProjects={setProjects}
-        onAddProject={() => setShowAddProject(true)}
+      <ProjectManagement onAddProject={() => setShowAddProject(true)}
       />
     ),
     paths: <LearningPathManagement paths={paths} setPaths={setPaths} />,
@@ -461,9 +456,15 @@ function AchievementModal({ onClose, initial = null, onSave }) {
 
 // ─── SECTIONS ─────────────────────────────────────────────────────────────────
 
-function ProjectManagement({ projects, setProjects, onAddProject }) {
+function ProjectManagement({onAddProject }) {
+  const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [error, setError] = useState(null);
+  const PER_PAGE = 10;
   const filtered = projects.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "All" || p.difficulty === filter;
@@ -484,21 +485,34 @@ function ProjectManagement({ projects, setProjects, onAddProject }) {
   // TODO: Create project API
   // TODO: Update project API
   // TODO: Delete project API
-
+useEffect(()=>{
+  getAdminProjects({
+    page,
+    limit: PER_PAGE,
+    difficulty:filter,
+    search
+  })
+  .then((data)=>{
+    setProjects(data.projects)
+    setTotalPages(data.totalPages)
+    setTotalProjects(data.totalProjects)
+  })
+  .catch((err) => setError(err.message))
+},[page,filter,search])
   return (
     <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318]">
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
         <SectionHeader
           title="Project Management"
-          subtitle={`${projects.length} total`}
+          subtitle={`${totalProjects} total`}
           action={<PrimaryButton onClick={onAddProject} icon={Plus} small>Add Project</PrimaryButton>}
         />
       </div>
       <div className="px-6 pb-2 pt-4 flex flex-col sm:flex-row gap-3">
-        <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Search projects…" /></div>
+        <div className="flex-1"><SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search projects…" /></div>
         <div className="flex gap-1.5 flex-wrap">
           {["All", "Beginner", "Intermediate", "Advanced"].map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
+            <button key={f} onClick={() => { setFilter(f); setPage(1); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f
                 ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
                 : "border-white/7 text-white/35 hover:text-white/70 hover:border-white/15"
@@ -519,7 +533,7 @@ function ProjectManagement({ projects, setProjects, onAddProject }) {
           </thead>
           <tbody>
             <AnimatePresence>
-              {filtered.map((p, i) => {
+              {projects.map((p, i) => {
                 return (
 
                   <motion.tr key={p._id}
@@ -555,18 +569,44 @@ function ProjectManagement({ projects, setProjects, onAddProject }) {
           <div className="py-12 text-center text-white/25 text-sm">No projects match your search.</div>
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 px-6 pb-6">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+            <ChevronLeft size={13} />
+          </button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button key={i} onClick={() => setPage(i + 1)}
+              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1
+                ? "bg-emerald-400 text-black"
+                : "text-white/35 hover:text-white/70 border border-white/7"
+                }`}>
+              {i + 1}
+            </button>
+          ))}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
     </motion.section>
   );
 }
 
 function LearningPathManagement({ paths, setPaths }) {
   // TODO: Learning path CRUD API
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 4;
+  const totalPages = Math.ceil(paths.length / PER_PAGE);
+  const paginated = paths.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   return (
     <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318] p-6">
       <SectionHeader title="Learning Paths" subtitle={`${paths.length} paths`}
         action={<PrimaryButton small icon={Plus} onClick={() => { }}>Add Path</PrimaryButton>} />
       <div className="grid gap-2">
-        {paths.map((lp, i) => (
+        {paginated.map((lp, i) => (
           <motion.div key={lp.id}
             initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
             className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:border-white/10 transition-colors group">
@@ -589,6 +629,27 @@ function LearningPathManagement({ paths, setPaths }) {
           </motion.div>
         ))}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-5">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+            <ChevronLeft size={13} />
+          </button>
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button key={i} onClick={() => setPage(i + 1)}
+              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1
+                ? "bg-emerald-400 text-black"
+                : "text-white/35 hover:text-white/70 border border-white/7"
+                }`}>
+              {i + 1}
+            </button>
+          ))}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
     </motion.section>
   );
 }
