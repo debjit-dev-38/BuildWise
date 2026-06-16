@@ -1,36 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Background from "../Components/Background";
 import Navbar from "../Components/Navbar";
 import { COLORS, FONTS, DIFFICULTY_COLORS, badgeBg } from "../Constants/theme";
-
-// ─── Mock API Data (replace with real fetch) ──────────────────────────────────
-const MOCK_DATA = {
-  project: {
-    id: "proj_001",
-    title: "REST API with Authentication",
-    slug: "rest-api-with-auth",
-    difficulty: "Intermediate",
-    duration: "8 Weeks",
-    learners: 4100,
-    rating: 4.7,
-    category: "Backend",
-    techStack: ["Express", "PostgreSQL", "Redis", "JWT", "Zod", "Docker", "Jest"],
-  },
-  modules: [
-    { id: "m1",  order: 1,  title: "Introduction",           description: "Overview of the project architecture, goals, and what you'll build by the end of this course.", duration: "30 min",  pdfUrl: null, completed: true,  unlocked: true  },
-    { id: "m2",  order: 2,  title: "Project Setup",          description: "Scaffold the project, install dependencies, configure TypeScript, and set up the development environment.", duration: "45 min",  pdfUrl: null, completed: true,  unlocked: true  },
-    { id: "m3",  order: 3,  title: "Database Design",        description: "Design the PostgreSQL schema, define table relationships, and write migration scripts.", duration: "1 hour",  pdfUrl: null, completed: true,  unlocked: true  },
-    { id: "m4",  order: 4,  title: "User Registration",      description: "Implement the registration endpoint with Zod validation, bcrypt password hashing, and proper error handling.", duration: "1.5 hrs", pdfUrl: null, completed: false, unlocked: true  },
-    { id: "m5",  order: 5,  title: "Login System",           description: "Build the login flow, verify credentials safely, and issue JWT access tokens and refresh tokens.", duration: "1.5 hrs", pdfUrl: null, completed: false, unlocked: false },
-    ],
-};
-
-// ─── Derived progress ──────────────────────────────────────────────────────────
-function deriveProgress(modules) {
-  const completed = modules.filter((m) => m.completed).length;
-  const total = modules.length;
-  return { completedModules: completed, totalModules: total, percentage: Math.round((completed / total) * 100) };
-}
+import { getProjectModules } from "../Services/projectService";
 
 // ─── Design tokens (scoped to this page) ──────────────────────────────────────
 const ACCENT  = COLORS.green;            // #6EE7B7
@@ -43,7 +16,7 @@ const SERIF   = FONTS.serif.fontFamily;  // 'Instrument Serif', serif
 const SANS    = FONTS.sans.fontFamily;   // 'DM Sans', sans-serif
 
 const css = {
-  // ── layout ──────────────────────────────────────────────────────────────────
+  // ── layout ───────────────────────────────────────────────────────────
   page: {
     ...FONTS.sans,
     background: BG,
@@ -67,7 +40,7 @@ const css = {
     overflow: "hidden",
   },
 
-  // ── left sidebar ────────────────────────────────────────────────────────────
+  // ── left sidebar ─────────────────────────────────────────────────────────
   sidebarLeft: {
     width: 240,
     flexShrink: 0,
@@ -102,10 +75,10 @@ const css = {
     opacity: unlocked ? 1 : 0.5,
   }),
 
-  // ── main content area ────────────────────────────────────────────────────────
+  // ── main content area ───────────────────────────────────────────────────────
   main: { flex: 1, padding: "36px 48px", overflowY: "auto", overflowX: "hidden", minWidth: 0, height: "100%" },
 
-  // ── right sidebar ────────────────────────────────────────────────────────────
+  // ── right sidebar ────────────────────────────────────────────────────────
   sidebarRight: {
     width: 220,
     flexShrink: 0,
@@ -116,7 +89,7 @@ const css = {
     background: "rgba(10,10,10,0.95)",
   },
 
-  // ── cards ────────────────────────────────────────────────────────────────────
+  // ── cards ───────────────────────────────────────────────────────────
   glassCard: {
     background: GLASS,
     border: `1px solid ${BORDER}`,
@@ -124,7 +97,7 @@ const css = {
     padding: "16px",
   },
 
-  // ── buttons ──────────────────────────────────────────────────────────────────
+  // ── buttons ──────────────────────────────────────────────────────────
   btnPrimary: {
     background: ACCENT,
     color: BG,
@@ -160,7 +133,7 @@ const css = {
     fontFamily: SANS,
   },
 
-  // ── tags / badges ────────────────────────────────────────────────────────────
+  // ── tags / badges ────────────────────────────────────────────────────────
   tag: {
     background: GLASS,
     border: `1px solid ${BORDER}`,
@@ -181,7 +154,14 @@ const css = {
   },
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+// ─── Derived progress ───────────────────────────────────────────────────────────
+function deriveProgress(modules) {
+  const completed = modules.filter((m) => m.completed).length;
+  const total = modules.length;
+  return { completedModules: completed, totalModules: total, percentage: Math.round((completed / total) * 100) };
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProgressRing({ pct }) {
   const r = 36, cx = 44, cy = 44, stroke = 4;
@@ -310,8 +290,8 @@ function PDFViewer({ pdfUrl }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${BORDER}` }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: TEXT_SEC, letterSpacing: "1px", textTransform: "uppercase" }}>Learning Material</span>
         <div style={{ display: "flex", gap: 8 }}>
-          <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: ACCENT, textDecoration: "none", padding: "3px 10px", border: `1px solid rgba(110,231,183,0.2)`, borderRadius: 6 }}>⬇ Download</a>
-          <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: TEXT_SEC, textDecoration: "none", padding: "3px 10px", border: `1px solid ${BORDER}`, borderRadius: 6 }}>⛶ Fullscreen</a>
+          <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: ACCENT, textDecoration: "none", padding: "3px 10px", border: `1px solid rgba(110,231,183,0.2)`, borderRadius: 6 }}>Preview</a>
+          <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: TEXT_SEC, textDecoration: "none", padding: "3px 10px", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Download</a>
         </div>
       </div>
       <iframe src={`${pdfUrl}#toolbar=0&navpanes=0`} width="100%" height="600" style={{ border: "none", display: "block" }} title="Module PDF" />
@@ -319,17 +299,78 @@ function PDFViewer({ pdfUrl }) {
   );
 }
 
-// ─── Main Component ────────────────────────────────────────────────────────────
-export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
-  const [modules, setModules]     = useState(data.modules);
-  const [activeId, setActiveId]   = useState(() => {
-    const first = data.modules.find((m) => m.unlocked && !m.completed);
-    return first ? first.id : data.modules[0]?.id;
-  });
+// ─── Loading skeleton ───────────────────────────────────────────────────────────
+function LoadingState() {
+  return (
+    <div style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <div style={{ animation: "spin 2s linear infinite", width: 24, height: 24, borderRadius: 4, borderTop: "2px solid #6EE7B7" }} />
+        </div>
+        <p style={{ fontSize: 14, color: "#555", fontFamily: SANS }}>Loading learning materials…</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Error State ───────────────────────────────────────────────────────────────
+function ErrorState({ message, onBack }) {
+  return (
+    <div style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <h2 style={{ fontFamily: SERIF, fontSize: 24, color: TEXT, marginBottom: 8 }}>Oops!</h2>
+        <p style={{ fontSize: 14, color: TEXT_SEC, marginBottom: 24, maxWidth: 400 }}>{message}</p>
+        <button style={css.btnSecondary} onClick={onBack}>← Back to Projects</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function BuildWiseLearningPage() {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+
+  // Data state — everything comes from the backend service layer
+  const [project, setProject]   = useState(null);
+  const [modules, setModules]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+
+  const [activeId, setActiveId]   = useState(null);
   const [showModal, setShowModal] = useState(false);
   const mainRef = useRef(null);
 
-  const project     = data.project;
+  // ── Fetch project + modules on mount or slug change ────────────────────────
+  useEffect(() => {
+    if (!slug) {
+      setError("No project specified");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    getProjectModules(slug)
+      .then(({ project: proj, modules: mods }) => {
+        setProject(proj);
+        setModules(mods);
+        // Set active to first unlocked module
+        const firstUnlocked = mods.find((m) => m.unlocked);
+        if (firstUnlocked) setActiveId(firstUnlocked.id);
+        else if (mods.length > 0) setActiveId(mods[0].id);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load learning materials:", err);
+        setError("Failed to load learning materials. Please try again.");
+        setLoading(false);
+      });
+  }, [slug]);
+
+  // Derived state
   const progress    = deriveProgress(modules);
   const activeModule = modules.find((m) => m.id === activeId);
   const activeIndex  = modules.findIndex((m) => m.id === activeId);
@@ -347,7 +388,7 @@ export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
     .filter((m) => !m.completed)
     .reduce((acc, m) => {
       const raw = m.duration || "";
-      const hrs = raw.includes("hour") ? parseFloat(raw) : raw.includes("min") ? parseFloat(raw) / 60 : 0;
+      const hrs = raw.includes("hour") ? parseFloat(raw) : raw.includes("hr") ? parseFloat(raw) : raw.includes("min") ? parseFloat(raw) / 60 : 0;
       return acc + hrs;
     }, 0);
 
@@ -370,6 +411,11 @@ export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // ── Guard: show loading or error state ────────────────────────────────────
+  if (loading) return <LoadingState />;
+  if (error || !project) return <ErrorState message={error || "Project not found"} onBack={() => navigate("/projects")} />;
+  if (modules.length === 0) return <ErrorState message="No learning modules available for this project" onBack={() => navigate("/projects")} />;
+
   return (
     <div style={css.page}>
       {/* ── Injected fonts + utility overrides ── */}
@@ -381,6 +427,7 @@ export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
         .bw-module-hover:hover { background: rgba(255,255,255,0.035) !important; }
         .bw-btn-secondary:hover { border-color: rgba(255,255,255,0.18) !important; color: #fff !important; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @media (max-width: 1024px) { .bw-sidebar-right { display: none !important; } }
         @media (max-width: 768px)  { .bw-sidebar-left  { display: none !important; } .bw-main { padding: 20px !important; } }
       `}</style>
@@ -388,8 +435,7 @@ export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
       {/* Imported background — radial blobs + grid */}
       <Background />
 
-      {/* Navbar sits outside appShell so position:fixed resolves against the viewport,
-           not against any ancestor stacking context */}
+      {/* Navbar sits outside appShell so position:fixed resolves against the viewport */}
       <Navbar />
 
       <div style={css.appShell}>
@@ -467,7 +513,7 @@ export default function BuildWiseLearningPage({ data = MOCK_DATA }) {
             {/* CELEBRATION BANNER — shown above module view when all done */}
             {allDone && (
               <div style={{ marginBottom: 32 }}>
-                <CelebrationCard project={project} onDashboard={() => {}} onNext={() => {}} />
+                <CelebrationCard project={project} onDashboard={() => navigate("/dashboard")} onNext={() => navigate("/projects")} />
               </div>
             )}
 

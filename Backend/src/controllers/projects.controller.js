@@ -128,7 +128,7 @@ const getProject = asyncHandler(async (req, res) => {
     const [projects, totalProjects] = await Promise.all([
         Project.find(filter)
             .select(
-                "_id slug name description color category difficulty duration stack metrics image featured newest recommended status"
+                "_id slug name description color category difficulty duration stack metrics image featured newest recommended status modules"
             )
             .sort(sortQuery)
             .skip((page - 1) * limit)
@@ -137,7 +137,6 @@ const getProject = asyncHandler(async (req, res) => {
 
         Project.countDocuments(filter),
     ]);
-    console.log(projects[0]);
     return res.status(200).json(
         new ApiResponse(
             200,
@@ -154,11 +153,11 @@ const getProject = asyncHandler(async (req, res) => {
 });
 /*
 Normally, when you use:const projects = await Project.find();
-Mongoose takes the data returned by MongoDB and wraps each document with extra features such as .save(), .validate(), .populate(), and change tracking. This requires additional processing and memory.
+Mongoose takes the data returned by MongoDB and wraps each document with extra features such as .save(), .validate(), .populate(), and change tracking. This requires additional processing and mem[...]
 When you use:
 const projects = await Project.find().lean();
 Mongoose skips all that extra work and returns the raw data directly. The result is faster queries, lower memory usage, and better performance, especially when fetching many records.
-The tradeoff is that the returned objects no longer have Mongoose methods like .save() or .validate(). Therefore, .lean() is best used for read-only operations where you're simply fetching data and sending it to the frontend.
+The tradeoff is that the returned objects no longer have Mongoose methods like .save() or .validate(). Therefore, .lean() is best used for read-only operations where you're simply fetching data a[...]
 For your getProject API, where you're only reading projects and returning JSON, using .lean() is a good optimization because you don't need any of Mongoose's document features.
 */
 const deleteProject = asyncHandler(async (req, res) => {

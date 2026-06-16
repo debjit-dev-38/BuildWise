@@ -27,7 +27,7 @@ export const getProjects= async({
   tech = [],
   sort,
   search,
-} = {}) =>{
+} = {})=>{
   const params = {
     page,
     limit,
@@ -52,6 +52,49 @@ export const getProjectBySlug = async (slug) => {
   );
 
   return res.data.data;
+};
+
+/**
+ * getProjectModules — fetch project + modules data from backend
+ * Used by BuildWiseLearningPage to load full learning content
+ *
+ * @param {string} slug - the project slug
+ * @returns {Object} { project: {...}, modules: [...] }
+ */
+export const getProjectModules = async (slug) => {
+  const res = await axios.get(
+    `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${slug}`
+  );
+
+  const projectData = res.data.data;
+
+  // Extract project info
+  const project = {
+    id: projectData._id,
+    title: projectData.name,
+    slug: projectData.slug,
+    difficulty: projectData.difficulty,
+    duration: projectData.duration,
+    learners: projectData.metrics?.[0]?.num ?? 0, // learners count from metrics
+    rating: projectData.metrics?.[1]?.num ?? 0,   // rating from metrics
+    category: projectData.category,
+    techStack: projectData.stack?.map(s => s.name) ?? [],
+  };
+
+  // Transform modules from backend format
+  const modules = (projectData.modules ?? []).map((m, idx) => ({
+    id: m._id?.toString?.() ?? `m${idx}`,
+    order: m.order ?? idx + 1,
+    title: m.phase,
+    description: m.desc,
+    duration: m.duration,
+    pdfUrl: m.pdfUrl || null,
+    pdfPublicId: m.pdfPublicId || "",
+    completed: false,
+    unlocked: idx === 0, // only first module unlocked initially
+  }));
+
+  return { project, modules };
 };
 
 export const getFeaturedProjects = async () => {
