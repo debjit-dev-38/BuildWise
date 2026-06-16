@@ -128,7 +128,7 @@ const getProject = asyncHandler(async (req, res) => {
     const [projects, totalProjects] = await Promise.all([
         Project.find(filter)
             .select(
-                "_id name description color category difficulty duration stack metrics image featured newest recommended status"
+                "_id slug name description color category difficulty duration stack metrics image featured newest recommended status"
             )
             .sort(sortQuery)
             .skip((page - 1) * limit)
@@ -137,7 +137,7 @@ const getProject = asyncHandler(async (req, res) => {
 
         Project.countDocuments(filter),
     ]);
-
+    console.log(projects[0]);
     return res.status(200).json(
         new ApiResponse(
             200,
