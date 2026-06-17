@@ -1342,7 +1342,12 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
   // `open`), so this initializer naturally re-runs with the latest data
   // every time an Edit is opened — no extra effect needed to "re-populate".
   const isEdit = mode ? mode === "edit" : !!initialData;
-  const [project, setProject] = useState(() => ({ ...DEFAULT, id: uid(), ...(initialData ?? {}) }));
+  const [project, setProject] = useState(() => {
+    const clone = initialData
+      ? (typeof structuredClone === "function" ? structuredClone(initialData) : JSON.parse(JSON.stringify(initialData)))
+      : {};
+    return { ...DEFAULT, id: uid(), ...clone };
+  });
   const [tab, setTab] = useState(0);
   const [previewTab, setPTab] = useState(0); // 0=card, 1=learning
   const [picker, setPicker] = useState(null); // {field, id}
