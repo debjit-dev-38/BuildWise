@@ -585,6 +585,7 @@ function ProjectManagement({
                     <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.createdAt}</td>
                     <td className="py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GhostButton small icon={Eye} onClick={() => window.open(`/projectdetails/${p.slug}`, "_blank")}>View</GhostButton>
                         <GhostButton small icon={Edit2} onClick={() => onEditProject(p)}>Edit</GhostButton>
                         <GhostButton small danger icon={Trash2}  onClick={() => removeProject(p._id)}>Del</GhostButton>
                       </div>

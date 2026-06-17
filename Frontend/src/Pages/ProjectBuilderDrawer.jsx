@@ -1342,10 +1342,27 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
   // `open`), so this initializer naturally re-runs with the latest data
   // every time an Edit is opened — no extra effect needed to "re-populate".
   const isEdit = mode ? mode === "edit" : !!initialData;
+
   const [project, setProject] = useState(() => {
     const clone = initialData
       ? (typeof structuredClone === "function" ? structuredClone(initialData) : JSON.parse(JSON.stringify(initialData)))
       : {};
+    // Normalize all array sub-documents: ensure every item has a unique `id`.
+    // Handles three cases: Mongoose _id present, no id at all, or id already set.
+    const ARRAY_FIELDS = ["stack", "metrics", "features", "modules", "gallery", "challenges"];
+    ARRAY_FIELDS.forEach(field => {
+      if (Array.isArray(clone[field])) {
+        clone[field] = clone[field].map(item => {
+          if (!item) return item;
+          if (item.id) return item;                          // already has id
+          if (item._id) {
+            const { _id, ...rest } = item;
+            return { id: String(_id), ...rest };             // promote _id -> id
+          }
+          return { ...item, id: uid() };                    // no id at all - generate one
+        });
+      }
+    });
     return { ...DEFAULT, id: uid(), ...clone };
   });
   const [tab, setTab] = useState(0);
