@@ -9,6 +9,7 @@ import {
   Wifi, Gauge, FileText,
   X, Plus, Trash2, ChevronDown, Check, BookmarkIcon, Upload, FileIcon,
   Eye, Save, AlertCircle, GripVertical, Clock, Users2, Star as StarIcon,
+  Link2,
 } from "lucide-react";
 
 // ─── Icon Registry ─────────────────────────────────────────────────────────────
@@ -58,6 +59,14 @@ function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace
 function accentRgb(color) {
   const m = { green: "110,231,183", indigo: "129,140,248", amber: "252,211,77", pink: "249,168,212" };
   return m[color] ?? m.green;
+}
+function isValidHttpUrl(value) {
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 const DEFAULT = {
@@ -284,6 +293,7 @@ function IconBtn({ iconKey, onClick, accent }) {
 // ─── PDF Upload ────────────────────────────────────────────────────────────────
 const PDF_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const PDF_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-pdf`;
+const PDF_URL_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-pdf-by-url`;
 // NOTE: PDF uploads occur immediately when selected.
 // Backend should clean up orphan uploads if a user uploads a PDF but never saves the project.
 
@@ -291,6 +301,7 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
   const [drag, setDrag] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef();
   const abortRef = useRef(null);
   const mountedRef = useRef(true);
@@ -363,6 +374,48 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
     }
   }
 
+  async function handleUrlImport() {
+    const trimmedUrl = urlInput.trim();
+    if (!trimmedUrl) {
+      setError("Please enter a URL.");
+      return;
+    }
+    if (!isValidHttpUrl(trimmedUrl)) {
+      setError("Please enter a valid http(s) URL.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+
+    // Cancel any in-flight upload
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const response = await axios.post(
+        PDF_URL_UPLOAD_ENDPOINT,
+        { url: trimmedUrl },
+        { signal: abortRef.current.signal }
+      );
+
+      if (!mountedRef.current) return;
+
+      const { success, url, publicId, originalName } = response.data.data || {};
+      if (!success || !url || !publicId) {
+        throw new Error("Invalid response from upload server.");
+      }
+      onUpload({ pdfName: originalName ?? trimmedUrl, pdfUrl: url, pdfPublicId: publicId });
+      setUrlInput("");
+    } catch (err) {
+      if (!mountedRef.current) return;
+      if (axios.isCancel(err)) return;
+      setError(err?.response?.data?.message ?? "Import failed. Please try again.");
+    } finally {
+      if (mountedRef.current) setUploading(false);
+    }
+  }
+
   return (
     <div>
       {pdfName ? (
@@ -412,6 +465,32 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
           <div style={{ fontFamily: T.sans, fontSize: 11, color: T.faint }}>PDF files only · max 10 MB</div>
         </div>
       )}
+      <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, margin: "8px 0 6px" }}>or import from a URL</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ flex: 1 }}>
+          <Inp
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            placeholder="https://example.com/file.pdf"
+            disabled={uploading}
+          />
+        </div>
+        <button
+          onClick={handleUrlImport}
+          disabled={uploading || !urlInput.trim()}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
+            background: "transparent",
+            border: `1px solid ${(uploading || !urlInput.trim()) ? T.border : T.green}`,
+            borderRadius: 8, padding: "8px 12px",
+            color: (uploading || !urlInput.trim()) ? T.muted : T.green,
+            fontFamily: T.sans, fontSize: 12, fontWeight: 600,
+            cursor: (uploading || !urlInput.trim()) ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap", transition: "all 0.2s",
+          }}>
+          <Link2 size={12} />{uploading ? "Importing…" : "Import URL"}
+        </button>
+      </div>
       {error && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontFamily: T.sans, fontSize: 11, color: "#F87171" }}>
           <AlertCircle size={12} />
@@ -427,6 +506,7 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
 // ─── Image Upload ──────────────────────────────────────────────────────────────
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const IMAGE_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-image`;
+const IMAGE_URL_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-image-by-url`;
 const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
 const ACCEPTED_IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 // NOTE: Image uploads occur immediately when selected.
@@ -436,6 +516,7 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
   const [drag, setDrag] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef();
   const abortRef = useRef(null);
   const mountedRef = useRef(true);
@@ -468,7 +549,6 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
       setError("This image is already uploaded.");
       return;
     }
-
     setError("");
     setUploading(true);
     abortRef.current?.abort();
@@ -495,6 +575,47 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
       if (!mountedRef.current) return;
       if (axios.isCancel(err)) return;
       setError(err?.response?.data?.message ?? "Upload failed. Please try again.");
+    } finally {
+      if (mountedRef.current) setUploading(false);
+    }
+  }
+
+  async function handleUrlImport() {
+    const trimmedUrl = urlInput.trim();
+    if (!trimmedUrl) {
+      setError("Please enter a URL.");
+      return;
+    }
+    if (!isValidHttpUrl(trimmedUrl)) {
+      setError("Please enter a valid http(s) URL.");
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    try {
+      const response = await axios.post(
+        IMAGE_URL_UPLOAD_ENDPOINT,
+        { url: trimmedUrl },
+        { signal: abortRef.current.signal }
+      );
+
+      if (!mountedRef.current) return;
+
+      const { success, url: resUrl, publicId, originalName: resName } = response.data.data || {};
+      if (!success || !resUrl || !publicId) {
+        throw new Error("Invalid response from upload server.");
+      }
+
+      onUpload({ url: resUrl, publicId, originalName: resName ?? trimmedUrl });
+      setUrlInput("");
+    } catch (err) {
+      if (!mountedRef.current) return;
+      if (axios.isCancel(err)) return;
+      setError(err?.response?.data?.message ?? "Import failed. Please try again.");
     } finally {
       if (mountedRef.current) setUploading(false);
     }
@@ -549,6 +670,32 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
           <div style={{ fontFamily: T.sans, fontSize: 11, color: T.faint }}>JPEG, PNG, WebP, GIF · max 10 MB</div>
         </div>
       )}
+      <div style={{ fontFamily: T.sans, fontSize: 11, color: T.muted, margin: "8px 0 6px" }}>or import from a URL</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ flex: 1 }}>
+          <Inp
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            disabled={uploading}
+          />
+        </div>
+        <button
+          onClick={handleUrlImport}
+          disabled={uploading || !urlInput.trim()}
+          style={{
+            display: "flex", alignItems: "center", gap: 5, flexShrink: 0,
+            background: "transparent",
+            border: `1px solid ${(uploading || !urlInput.trim()) ? T.border : T.green}`,
+            borderRadius: 8, padding: "8px 12px",
+            color: (uploading || !urlInput.trim()) ? T.muted : T.green,
+            fontFamily: T.sans, fontSize: 12, fontWeight: 600,
+            cursor: (uploading || !urlInput.trim()) ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap", transition: "all 0.2s",
+          }}>
+          <Link2 size={12} />{uploading ? "Importing…" : "Import URL"}
+        </button>
+      </div>
       {error && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontFamily: T.sans, fontSize: 11, color: "#F87171" }}>
           <AlertCircle size={12} />

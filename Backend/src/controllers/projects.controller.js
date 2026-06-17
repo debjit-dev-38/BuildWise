@@ -71,6 +71,60 @@ const uploadPdf = asyncHandler(async (req, res) => {
     );
 });
 
+const uploadPdfByUrl = asyncHandler(async (req, res) => {
+    const { url } = req.body
+
+    if (!url)
+        throw new ApiError(400, "Pdf url is required")
+    const originalName =
+        url.split("/").pop()?.split("?")[0] ||
+        "Imported from URL";
+    const uploadedUrl = await uploadOnCloudinary(url);
+
+    if (!uploadedUrl)
+        throw new ApiError(500, "Pdf url upload failed")
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                success: true,
+                url: uploadedUrl.secure_url,
+                publicId: uploadedUrl.public_id,
+                originalName: originalName,
+            },
+            "Pdf url uploaded successfully"
+        )
+    )
+})
+
+const uploadImageByUrl = asyncHandler(async (req, res) => {
+    const { url } = req.body
+
+    if (!url)
+        throw new ApiError(400, "Image url required")
+
+    const originalName = url.split("/").pop()?.split("?")[0] || "Imported for Url"
+
+    const uploadedUrl = await uploadOnCloudinary(url)
+
+    if (!uploadedUrl)
+        throw new ApiError(500, "Upload failed")
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                success: true,
+                url: uploadedUrl.secure_url,
+                publicId: uploadedUrl.public_id,
+                originalName: originalName,
+            },
+            "Image Url Uploaded Successfully"
+        )
+    )
+})
+
 const getProject = asyncHandler(async (req, res) => {
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.max(Number(req.query.limit) || 9, 1);
@@ -178,4 +232,4 @@ const getProjectBySlug = asyncHandler(async (req, res) => {
     )
 })
 
-export { getProjectBySlug, deleteProject, getProject, addProject, uploadImage, uploadPdf }
+export { uploadImageByUrl, uploadPdfByUrl, getProjectBySlug, deleteProject, getProject, addProject, uploadImage, uploadPdf }

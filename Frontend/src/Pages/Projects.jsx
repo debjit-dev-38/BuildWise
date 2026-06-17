@@ -40,7 +40,7 @@ const STATS = [
 ];
 
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 10;
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 
