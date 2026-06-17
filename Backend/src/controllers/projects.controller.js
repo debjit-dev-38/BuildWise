@@ -71,6 +71,30 @@ const uploadPdf = asyncHandler(async (req, res) => {
     );
 });
 
+const updateProject = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const project = await Project.findByIdAndUpdate(
+    id,
+    req.body,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      project,
+      "Project updated successfully"
+    )
+  );
+});
 const uploadPdfByUrl = asyncHandler(async (req, res) => {
     const { url } = req.body
 
@@ -232,4 +256,4 @@ const getProjectBySlug = asyncHandler(async (req, res) => {
     )
 })
 
-export { uploadImageByUrl, uploadPdfByUrl, getProjectBySlug, deleteProject, getProject, addProject, uploadImage, uploadPdf }
+export {updateProject, uploadImageByUrl, uploadPdfByUrl, getProjectBySlug, deleteProject, getProject, addProject, uploadImage, uploadPdf }

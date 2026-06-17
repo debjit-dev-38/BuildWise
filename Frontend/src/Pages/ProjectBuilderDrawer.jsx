@@ -1335,7 +1335,13 @@ function TabPublish({ p, set }) {
 }
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export default function ProjectBuilderDrawer({ open, onClose, onSave, initialData }) {
+export default function ProjectBuilderDrawer({ open, onClose, onSave, initialData, mode }) {
+  // Supports both calling conventions: an explicit mode="create"/"edit" prop,
+  // or simply passing/omitting initialData. Either way, the drawer renders
+  // fresh each time it's opened (the caller mounts it conditionally on
+  // `open`), so this initializer naturally re-runs with the latest data
+  // every time an Edit is opened — no extra effect needed to "re-populate".
+  const isEdit = mode ? mode === "edit" : !!initialData;
   const [project, setProject] = useState(() => ({ ...DEFAULT, id: uid(), ...(initialData ?? {}) }));
   const [tab, setTab] = useState(0);
   const [previewTab, setPTab] = useState(0); // 0=card, 1=learning
@@ -1425,7 +1431,6 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
       challenges: project.challenges, modules: project.modules,
       relatedProjectIds: project.relatedProjectIds,
     };
-    console.log(JSON.stringify(output, null, 2));
     onSave?.(output);
     onClose?.();
   }
@@ -1484,8 +1489,8 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
                 background: "rgba(255,255,255,0.02)",
               }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: T.text, letterSpacing: "-0.2px" }}>Create Project</div>
-                  <div style={{ fontSize: 12, color: T.muted }}>Build and manage learning projects</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: T.text, letterSpacing: "-0.2px" }}>{isEdit ? "Edit Project" : "Create Project"}</div>
+                  <div style={{ fontSize: 12, color: T.muted }}>{isEdit ? "Update an existing learning project" : "Build and manage learning projects"}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <button onClick={handleSaveDraft}
@@ -1508,7 +1513,7 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
                     }}
                     onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
                     onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-                    <Upload size={13} />Publish Project
+                    <Upload size={13} />{isEdit ? "Save Changes" : "Publish Project"}
                   </button>
                   <button onClick={onClose}
                     style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 9, padding: 7, cursor: "pointer", color: T.muted, display: "flex", transition: "all 0.15s" }}

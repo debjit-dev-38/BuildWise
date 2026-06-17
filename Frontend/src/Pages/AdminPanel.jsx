@@ -37,12 +37,65 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 
   const [section, setSection] = useState("overview");
   const [collapsed, setCollapsed] = useState(false);
-  const [showAddProject, setShowAddProject] = useState(false);
+  const [showProjectDrawer, setShowProjectDrawer] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
   const [showNotifs, setShowNotifs] = useState(false);
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
   const [paths, setPaths] = useState([]);
   const [badges, setBadges] = useState([]);
+
+  // Project Management data lives here (not inside ProjectManagement) so the
+  // top-bar "Add Project" shortcut and the Project Management table can share
+  // the same drawer instance and the same list, and both Add + Edit can
+  // refresh the table immediately after a save.
+  const [projects, setProjects] = useState([]);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectFilter, setProjectFilter] = useState("All");
+  const [projectPage, setProjectPage] = useState(1);
+  const [projectTotalPages, setProjectTotalPages] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [projectError, setProjectError] = useState(null);
+  const PROJECTS_PER_PAGE = 10;
+
+  const fetchProjects = () => {
+    return getAdminProjects({
+      page: projectPage,
+      limit: PROJECTS_PER_PAGE,
+      difficulty: projectFilter,
+      search: projectSearch,
+    })
+      .then((data) => {
+        setProjects(data.projects);
+        setProjectTotalPages(data.totalPages);
+        setTotalProjects(data.totalProjects);
+      })
+      .catch((err) => setProjectError(err.message));
+  };
+
+  const handleSaveProject = async (projectData) => {
+    try {
+      if (editingProject) {
+        await axios.put(
+          `${import.meta.env.VITE_APP_URI}/api/v1/projects/update-project/${editingProject._id}`,
+          projectData
+        );
+      } else {
+        await axios.post(
+          `${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`,
+          projectData
+        );
+      }
+
+      await fetchProjects();
+      setShowProjectDrawer(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.log("STATUS:", error.response?.status);
+      console.log("DATA:", error.response?.data);
+      console.log(error);
+    }
+  };
 
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const sideWidth = collapsed ? 56 : 216;
@@ -54,6 +107,10 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
     getAdminAchievements().then(setBadges);
   }, []);
 
+  useEffect(() => {
+    fetchProjects();
+  }, [projectPage, projectFilter, projectSearch]);
+
   const stats = summary?.metrics ?? {};
   const activity = summary?.activity ?? [];
   const notifications = summary?.notifications ?? [];
@@ -64,7 +121,19 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const sectionMap = {
     overview: null,
     projects: (
-      <ProjectManagement onAddProject={() => setShowAddProject(true)}
+      <ProjectManagement
+        projects={projects}
+        setProjects={setProjects}
+        totalProjects={totalProjects}
+        totalPages={projectTotalPages}
+        page={projectPage}
+        setPage={setProjectPage}
+        search={projectSearch}
+        setSearch={setProjectSearch}
+        filter={projectFilter}
+        setFilter={setProjectFilter}
+        onAddProject={() => { setEditingProject(null); setShowProjectDrawer(true); }}
+        onEditProject={(project) => { setEditingProject(project); setShowProjectDrawer(true); }}
       />
     ),
     paths: <LearningPathManagement paths={paths} setPaths={setPaths} />,
@@ -109,7 +178,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
             <p className="text-xs text-white/25 mt-0.5">{today}</p>
           </div>
           <div className="flex items-center gap-2">
-            <PrimaryButton small icon={Plus} onClick={() => setShowAddProject(true)}>Add Project</PrimaryButton>
+            <PrimaryButton small icon={Plus} onClick={() => { setEditingProject(null); setShowProjectDrawer(true); }}>Add Project</PrimaryButton>
             <GhostButton small icon={BookOpen} onClick={() => setSection("paths")}>Add Path</GhostButton>
             <GhostButton small icon={Users} onClick={() => setSection("users")}>Manage Users</GhostButton>
             <div className="relative">
@@ -210,29 +279,14 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 
       {/* Modals */}
       <AnimatePresence>
-        {showAddProject && (
+        {showProjectDrawer && (
           <ProjectBuilderDrawer
-            open={showAddProject}
-            onClose={() => setShowAddProject(false)}
-            onSave={async (project) => {
-              try {
-                const response = await axios.post(
-                  `${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`,
-                  project
-                );
-
-                console.log(response.data);
-
-                setShowAddProject(false);
-
-              } catch (error) {
-                console.log("STATUS:", error.response?.status);
-                console.log("DATA:", error.response?.data);
-                console.log(error);
-              }
-            }}
+            open={showProjectDrawer}
+            onClose={() => { setShowProjectDrawer(false); setEditingProject(null); }}
+            initialData={editingProject}
+            mode={editingProject ? "edit" : "create"}
+            onSave={handleSaveProject}
           />
-
         )}
       </AnimatePresence>
     </div>
@@ -456,15 +510,10 @@ function AchievementModal({ onClose, initial = null, onSave }) {
 
 // ─── SECTIONS ─────────────────────────────────────────────────────────────────
 
-function ProjectManagement({onAddProject }) {
-  const [projects, setProjects] = useState([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalProjects, setTotalProjects] = useState(0);
-  const [error, setError] = useState(null);
-  const PER_PAGE = 10;
+function ProjectManagement({
+  projects, setProjects, totalProjects, totalPages, page, setPage,
+  search, setSearch, filter, setFilter, onAddProject, onEditProject,
+}) {
   const filtered = projects.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "All" || p.difficulty === filter;
@@ -481,24 +530,6 @@ function ProjectManagement({onAddProject }) {
     console.error(error);
   }
 };
-  // TODO: Fetch projects from database
-  // TODO: Create project API
-  // TODO: Update project API
-  // TODO: Delete project API
-useEffect(()=>{
-  getAdminProjects({
-    page,
-    limit: PER_PAGE,
-    difficulty:filter,
-    search
-  })
-  .then((data)=>{
-    setProjects(data.projects)
-    setTotalPages(data.totalPages)
-    setTotalProjects(data.totalProjects)
-  })
-  .catch((err) => setError(err.message))
-},[page,filter,search])
   return (
     <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318]">
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
@@ -554,8 +585,7 @@ useEffect(()=>{
                     <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.createdAt}</td>
                     <td className="py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
-                        <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
+                        <GhostButton small icon={Edit2} onClick={() => onEditProject(p)}>Edit</GhostButton>
                         <GhostButton small danger icon={Trash2}  onClick={() => removeProject(p._id)}>Del</GhostButton>
                       </div>
                     </td>

@@ -138,7 +138,7 @@ function Gallery({ images }) {
         }}
       >
         <AnimatePresence mode="wait">
-          <motion.img key={active} src={images[active].src} alt={images[active].caption}
+          <motion.img key={active} src={images[active].url ?? images[active].src} alt={images[active].caption}
             style={{ width: "100%", height: 240, objectFit: "cover", display: "block" }}
             initial={{ opacity: 0, scale: 1.04 }}
             animate={{ scale: hov ? 1.04 : 1, opacity: 1 }}
@@ -165,7 +165,7 @@ function Gallery({ images }) {
               transition: "outline 0.2s, box-shadow 0.2s",
             }}
           >
-            <img src={img.src} alt={img.caption} style={{ width: "100%", height: 54, objectFit: "cover", display: "block" }} />
+            <img src={img.url} alt={img.caption} style={{ width: "100%", height: 54, objectFit: "cover", display: "block" }} />
             {i !== active && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} />}
           </motion.button>
         ))}
@@ -443,7 +443,6 @@ export default function ProjectDetails() {
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-
     Promise.all([
       getProjectBySlug(slug),
       getProjectDetails(slug),
@@ -473,7 +472,7 @@ export default function ProjectDetails() {
   };
 
   // ── Guard: show skeleton until data arrives ──────────────────────────────
-  if (loading || !details) return <LoadingState />;
+  if (loading || !project) return <LoadingState />;
 
   // ── Hydrate iconKey → Lucide component for each field that needs it ──────
   // This is the ONLY place in the app that resolves icon strings.
@@ -486,7 +485,7 @@ export default function ProjectDetails() {
   // even when the detail is for a standalone showcase (projectId: null)
   const title =  project?.name ?? "";
   const summary = project?.summary ?? "";
-  const cover = details.cover ??project.cover??  "";
+  const cover = details?.cover ??project.cover.url??  "";
   const status = project.status ?? "Live";
 
   return (
@@ -624,7 +623,7 @@ export default function ProjectDetails() {
               <ScrollReveal>
                 <div>
                   <SectionLabel>Gallery</SectionLabel>
-                  <Gallery images={details.gallery} />
+                  <Gallery images={details?.gallery?? project.gallery?? []} />
                 </div>
               </ScrollReveal>
 

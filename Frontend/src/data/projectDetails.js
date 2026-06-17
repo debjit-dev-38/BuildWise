@@ -33,10 +33,10 @@ export const projectDetails = {
     ],
 
     gallery: [
-      { src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Dashboard Overview" },
-      { src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Score Breakdown" },
-      { src: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&q=80", caption: "Keyword Analysis" },
-      { src: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "AI Suggestions Panel" },
+      { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Dashboard Overview" },
+      { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Score Breakdown" },
+      { url: "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&q=80", caption: "Keyword Analysis" },
+      { url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "AI Suggestions Panel" },
     ],
 
     challenges: [
@@ -130,10 +130,10 @@ export const projectDetails = {
       { iconKey: "BarChart3", label: "Usage Analytics", desc: "Token and cost dashboard" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Chat Interface" },
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Model Selection" },
-      { src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Analytics Dashboard" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Auth Flow" },
+      { url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Chat Interface" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Model Selection" },
+      { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Analytics Dashboard" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Auth Flow" },
     ],
     challenges: [
       { title: "Streaming Reliability", body: "Handling network interruptions mid-stream required building a resume mechanism and client-side buffer reconstruction." },
@@ -184,10 +184,10 @@ export const projectDetails = {
       { iconKey: "Search", label: "Product Search", desc: "Full-text filtering" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Product Listing" },
-      { src: "https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=800&q=80", caption: "Checkout Flow" },
-      { src: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Admin Dashboard" },
-      { src: "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=800&q=80", caption: "Inventory Panel" },
+      { url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Product Listing" },
+      { url: "https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=800&q=80", caption: "Checkout Flow" },
+      { url: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Admin Dashboard" },
+      { url: "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=800&q=80", caption: "Inventory Panel" },
     ],
     challenges: [
       { title: "Idempotent Payments", body: "Stripe webhooks can arrive multiple times. Built deduplication using idempotency keys and a job queue with exactly-once semantics." },
@@ -239,10 +239,10 @@ export const projectDetails = {
       { iconKey: "Rss", label: "RSS Feed", desc: "Automatic blog syndication" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=800&q=80", caption: "Hero Section" },
-      { src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80", caption: "Projects Grid" },
-      { src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80", caption: "Blog Layout" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Dark Mode" },
+      { url: "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=800&q=80", caption: "Hero Section" },
+      { url: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80", caption: "Projects Grid" },
+      { url: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80", caption: "Blog Layout" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Dark Mode" },
     ],
     challenges: [
       { title: "Animation Performance", body: "Complex exit animations caused layout shifts. Implemented shared element transitions and useLayoutEffect for smooth sequence." },
@@ -291,10 +291,10 @@ export const projectDetails = {
       { iconKey: "Bell", label: "Alerts", desc: "Threshold-based notifications" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Main Dashboard" },
-      { src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Chart Interactions" },
-      { src: "https://images.unsplash.com/photo-1551288049-c7c11f5f4c12?w=800&q=80", caption: "Filter Panel" },
-      { src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Alerts View" },
+      { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Main Dashboard" },
+      { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Chart Interactions" },
+      { url: "https://images.unsplash.com/photo-1551288049-c7c11f5f4c12?w=800&q=80", caption: "Filter Panel" },
+      { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "Alerts View" },
     ],
     challenges: [
       { title: "WebSocket Reliability", body: "Connection drops and reconnects needed state reconciliation. Built heartbeat system with exponential backoff and message queuing." },
@@ -345,10 +345,10 @@ export const projectDetails = {
       { iconKey: "Cloud", label: "Cloud Sync", desc: "Encrypted backup" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Dashboard" },
-      { src: "https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=800&q=80", caption: "Add Expense" },
-      { src: "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=800&q=80", caption: "Budget View" },
-      { src: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Reports" },
+      { url: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Dashboard" },
+      { url: "https://images.unsplash.com/photo-1556742031-c6961e8560b0?w=800&q=80", caption: "Add Expense" },
+      { url: "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?w=800&q=80", caption: "Budget View" },
+      { url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Reports" },
     ],
     challenges: [
       { title: "Offline-first Sync", body: "Users in poor connectivity need full functionality. Implemented WatermelonDB with sync engine that resolves conflicts via timestamps." },
@@ -398,10 +398,10 @@ export const projectDetails = {
       { iconKey: "Bug", label: "Tracing", desc: "Jaeger distributed traces" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80", caption: "Cluster Architecture" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Grafana Dashboard" },
-      { src: "https://images.unsplash.com/photo-1667372393086-9a400d9eae17?w=800&q=80", caption: "ArgoCD UI" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Prometheus Alerts" },
+      { url: "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80", caption: "Cluster Architecture" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Grafana Dashboard" },
+      { url: "https://images.unsplash.com/photo-1667372393086-9a400d9eae17?w=800&q=80", caption: "ArgoCD UI" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Prometheus Alerts" },
     ],
     challenges: [
       { title: "Service Discovery", body: "Services needed to find each other reliably. Implemented headless services with DNS and added retry/backoff for startup dependencies." },
@@ -454,10 +454,10 @@ export const projectDetails = {
       { iconKey: "Server", label: "Logging", desc: "Structured JSON logs" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Swagger UI" },
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Auth Flow" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Rate Limiting" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Test Reports" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Swagger UI" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Auth Flow" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Rate Limiting" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Test Reports" },
     ],
     challenges: [
       { title: "Token Security", body: "Refresh token rotation and reuse detection — invalidates all tokens if a reused refresh is detected, preventing token theft attacks." },
@@ -508,10 +508,10 @@ export const projectDetails = {
       { iconKey: "Sparkles", label: "Prompt Enhancer", desc: "AI-prompt optimization" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Generator UI" },
-      { src: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Style Presets" },
-      { src: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&q=80", caption: "Gallery View" },
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Parameter Panel" },
+      { url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Generator UI" },
+      { url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80", caption: "Style Presets" },
+      { url: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&q=80", caption: "Gallery View" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Parameter Panel" },
     ],
     challenges: [
       { title: "Long-running Generations", body: "SDXL takes 10-30 seconds. Implemented polling with progress indicators, abort controllers, and queued generation limit of 3 per user." },
@@ -561,10 +561,10 @@ export const projectDetails = {
       { iconKey: "Bug", label: "Testing", desc: "Unit + visual regression" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&q=80", caption: "Storybook UI" },
-      { src: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&q=80", caption: "Component Explorer" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dark Mode" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "TypeScript Demo" },
+      { url: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&q=80", caption: "Storybook UI" },
+      { url: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&q=80", caption: "Component Explorer" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dark Mode" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "TypeScript Demo" },
     ],
     challenges: [
       { title: "Bundling Strategy", body: "Supporting ESM, CJS, and tree-shaking required complex Rollup config with multiple outputs and proper package.json exports field." },
@@ -614,10 +614,10 @@ export const projectDetails = {
       { iconKey: "TrendingUp", label: "Persisted Queries", desc: "Performance boost" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "GraphQL Playground" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Schema Explorer" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Subscription Demo" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Metrics Dashboard" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "GraphQL Playground" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Schema Explorer" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Subscription Demo" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Metrics Dashboard" },
     ],
     challenges: [
       { title: "DataLoader Batching", body: "Multiple resolvers fetching same data. Implemented batch functions per entity type with request-scoped cache and 10ms wait window." },
@@ -667,10 +667,10 @@ export const projectDetails = {
       { iconKey: "BarChart3", label: "Analytics", desc: "Usage and revenue" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dashboard" },
-      { src: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Billing Portal" },
-      { src: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Team Settings" },
-      { src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Admin Dashboard" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dashboard" },
+      { url: "https://images.unsplash.com/photo-1556741533-6e6a3bd1e0e0?w=800&q=80", caption: "Billing Portal" },
+      { url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80", caption: "Team Settings" },
+      { url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80", caption: "Admin Dashboard" },
     ],
     challenges: [
       { title: "Webhook Reliability", body: "Stripe events can be delayed or replayed. Implemented idempotency keys, webhook queue with retries, and dead-letter queue for failed events." },
@@ -720,10 +720,10 @@ export const projectDetails = {
       { iconKey: "Terminal", label: "Auto-complete", desc: "Shell completions" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Task List" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Add Task" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Filter by Tag" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Help Menu" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "Task List" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Add Task" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Filter by Tag" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Help Menu" },
     ],
     challenges: [
       { title: "SQLite Schema Migrations", body: "Evolving data model required versioned migrations. Implemented migration runner that tracks applied versions and rolls back on failure." },
@@ -771,10 +771,10 @@ export const projectDetails = {
       { iconKey: "Users", label: "Templates", desc: "Share routines" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80", caption: "Workout Log" },
-      { src: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80", caption: "Progress Charts" },
-      { src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80", caption: "Routine Builder" },
-      { src: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80", caption: "Rest Timer" },
+      { url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80", caption: "Workout Log" },
+      { url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80", caption: "Progress Charts" },
+      { url: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80", caption: "Routine Builder" },
+      { url: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80", caption: "Rest Timer" },
     ],
     challenges: [
       { title: "State Management", body: "Complex workout state (timers, logs, history) needed Zustand with persisted storage and undo/redo for accidental completions." },
@@ -824,10 +824,10 @@ export const projectDetails = {
       { iconKey: "Brain", label: "Learning", desc: "Adapts from feedback" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "PR Comment" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Security Alert" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dashboard" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Settings" },
+      { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80", caption: "PR Comment" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "Security Alert" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Dashboard" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Settings" },
     ],
     challenges: [
       { title: "Token Limits", body: "Large PRs exceed GPT-4 context window. Implemented chunking by file, semantic diff summarization, and prioritization of changed lines over unchanged." },
@@ -877,15 +877,15 @@ export const projectDetails = {
       { iconKey: "Moon", label: "Dark Mode", desc: "System-aware theming" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80", caption: "Homepage" },
-      { src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80", caption: "Blog Post" },
-      { src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "CMS Preview" },
-      { src: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Comments" },
+      { url: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80", caption: "Homepage" },
+      { url: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80", caption: "Blog Post" },
+      { url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", caption: "CMS Preview" },
+      { url: "https://images.unsplash.com/photo-1551434678-e076c2239a9d?w=800&q=80", caption: "Comments" },
     ],
     challenges: [
       { title: "Edge Rendering", body: "Cloudflare Workers runtime lacks Node.js APIs. Polyfilled crypto, path, and stream APIs while keeping bundle size under 1MB." },
       { title: "CMS Webhooks", body: "Contentful webhooks for cache invalidation. Built purging system that revalidates only changed pages via Cloudflare's cache API." },
-      { title: "Image Pipeline", body: "On-the-fly image resizing at edge. Used Cloudflare Image Resizing with srcset generation and AVIF fallback." },
+      { title: "Image Pipeline", body: "On-the-fly image resizing at edge. Used Cloudflare Image Resizing with urlset generation and AVIF fallback." },
     ],
     timeline: [
       { phase: "Discovery", weeks: "Wk 1", desc: "CMS research, Astro eval" },
@@ -930,10 +930,10 @@ export const projectDetails = {
       { iconKey: "TrendingUp", label: "Auto-scaling", desc: "CPU/memory based" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80", caption: "Architecture Diagram" },
-      { src: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Terraform Plan" },
-      { src: "https://images.unsplash.com/photo-1667372393086-9a400d9eae17?w=800&q=80", caption: "AWS Console" },
-      { src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "GitHub Actions" },
+      { url: "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&q=80", caption: "Architecture Diagram" },
+      { url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", caption: "Terraform Plan" },
+      { url: "https://images.unsplash.com/photo-1667372393086-9a400d9eae17?w=800&q=80", caption: "AWS Console" },
+      { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", caption: "GitHub Actions" },
     ],
     challenges: [
       { title: "State Management", body: "Terraform state contains secrets. Used S3 backend with DynamoDB locking, encrypted state, and separate state files per environment." },

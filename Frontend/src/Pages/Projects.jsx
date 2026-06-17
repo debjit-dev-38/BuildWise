@@ -851,7 +851,6 @@ export default function Projects() {
     })
       .then((data) => {
         setProjects(data.projects);
-        console.log(data.projects)
         setTotalProjects(data.totalProjects);
         setTotalPages(data.totalPages);
       })
