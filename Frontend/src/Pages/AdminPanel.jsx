@@ -133,7 +133,17 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
         filter={projectFilter}
         setFilter={setProjectFilter}
         onAddProject={() => { setEditingProject(null); setShowProjectDrawer(true); }}
-        onEditProject={(project) => { setEditingProject(project); setShowProjectDrawer(true); }}
+        onEditProject={async (project) => {
+          try {
+            const res = await axios.get(
+              `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${project.slug}`
+            );
+            setEditingProject(res.data.data ?? res.data);
+          } catch {
+            setEditingProject(project);
+          }
+          setShowProjectDrawer(true);
+        }}
       />
     ),
     paths: <LearningPathManagement paths={paths} setPaths={setPaths} />,
