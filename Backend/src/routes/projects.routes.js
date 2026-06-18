@@ -7,13 +7,22 @@ const router = Router();
 
 
 router.route("/add-project").post(addProject);
+
 router.route("/upload-pdf").post(upload.single("pdf"), uploadPdf)
+
 router.route("upload-pdf-by-url").post(uploadPdfByUrl)
+
 router.route("/upload-image").post(upload.single("image"), uploadImage)
+
 router.route("/upload-image-by-url").post(uploadImageByUrl)
+
 router.route("/get-project").get(getProject)
+
 router.route("/update-project/:id").put(updateProject);
+
 router.route("/get-project/:slug").get(getProjectBySlug)
+
 router.route("/delete-project/:id").delete(deleteProject)
+
 
 export default router

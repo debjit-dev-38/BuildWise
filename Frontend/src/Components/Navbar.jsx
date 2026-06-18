@@ -1,6 +1,6 @@
 import React from 'react'
-import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect, useRef} from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   Hammer, ArrowRight, Play, Monitor, Server, Layers, Brain,
@@ -31,6 +31,7 @@ const G = {
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const navigate=useNavigate()
   const location = useLocation();
 
   useEffect(() => {
@@ -98,11 +99,12 @@ const Navbar = () => {
             style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.12)", color: "#e5e5e5" }}
             onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            onClick={()=>{navigate('/login')}}
           >
             Login
           </button>
           <div style={{ display: "flex", alignItems: "center", margin: 20, flexShrink: 0 }}>
-            <motion.button whileHover={{ y: -1, boxShadow: "0 6px 20px rgba(110,231,183,0.38)" }} whileTap={{ scale: 0.97 }}
+            <motion.button onClick={()=>{navigate('/register')}} whileHover={{ y: -1, boxShadow: "0 6px 20px rgba(110,231,183,0.38)" }} whileTap={{ scale: 0.97 }}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 10, background: G.green, color: G.bg, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 3px 14px rgba(110,231,183,0.28)", transition: "box-shadow 0.3s" }}>
               <Sparkles size={12} /> Get Started
             </motion.button>

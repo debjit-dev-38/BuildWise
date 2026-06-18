@@ -14,8 +14,19 @@ import { getFeaturedProjects } from "../Services/projectService";
 import { getPublishedPaths } from "../Services/learningPathService";
 import { COLORS, FONTS } from "../Constants/theme";
 
-// ── MAIN APP ─────────────────────────────────────────────────────────────────
 
+const ACCENT = "#6EE7B7";
+const BG = "#060607";
+const BORDER = "rgba(255,255,255,0.07)";
+const GLASS = "rgba(255,255,255,0.02)";
+const CARD_BG = "rgba(255,255,255,0.015)";
+const TEXT = "#F0F0F0";
+const TEXT_SEC = "rgba(255,255,255,0.45)";
+const SERIF = "'Instrument Serif', serif";
+const SANS = "'DM Sans', sans-serif";
+const MONO = "'DM Mono', monospace";
+
+// ── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [paths, setPaths] = useState([]);
@@ -25,7 +36,17 @@ export default function Home() {
     getPublishedPaths().then(setPaths);
   }, []);
   return (
+    
     <div className="min-h-screen" style={{ background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @keyframes particleFloat {
+          0%   { opacity: 0; transform: translate(0, 0); }
+          20%  { opacity: var(--peak); transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)); }
+          50%  { opacity: var(--peak); transform: translate(var(--dx), var(--dy)); }
+          80%  { opacity: var(--peak); transform: translate(calc(var(--dx) * 0.7), calc(var(--dy) * 0.7)); }
+          100% { opacity: 0; transform: translate(0, 0); }
+        }
+      `}</style>
       <Navbar />
 
       {/* ── HERO ── */}
@@ -41,9 +62,19 @@ export default function Home() {
             backgroundSize: "60px 60px",
           }}
         />
-        {/* Glow blobs */}
-        <div className="absolute pointer-events-none" style={{ top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, background: "radial-gradient(ellipse, rgba(110,231,183,0.07) 0%, transparent 70%)" }} />
-        <div className="absolute pointer-events-none" style={{ top: "30%", right: "10%", width: 300, height: 300, background: "radial-gradient(ellipse, rgba(129,140,248,0.06) 0%, transparent 70%)" }} />
+
+        {/* Faint glow */}
+        <div style={{
+            position: "absolute", top: "47%", left: "55%", transform: "translate(-50%, -50%)",
+            width: 580, height: 480, borderRadius: "50%", pointerEvents: "none", zIndex: 0,
+            background: "radial-gradient(ellipse, rgba(110,231,183,0.05) 0%, transparent 68%)",
+          }} />
+
+          {/* Moving particles */}
+          <Particles />
+
+
+        
 
         <div className="relative w-full max-w-[1100px] mx-auto px-6 flex flex-wrap items-center gap-12 justify-between">
           {/* Left */}
@@ -494,6 +525,45 @@ export default function Home() {
     </div>
   );
 }
+const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  left: Math.random() * 100,
+  top: Math.random() * 100,
+  size: 1.6 + Math.random() * 2.2,
+  duration: 12 + Math.random() * 14,
+  delay: Math.random() * 0.1,
+  peak: 0.25 + Math.random() * 0.4,
+  driftX: (Math.random() - 0.5) * 36,
+  driftY: -(10 + Math.random() * 26),
+}));
+
+function Particles() {
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      {PARTICLES.map((p) => (
+        <span
+          key={p.id}
+          style={{
+            position: "absolute",
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            width: p.size,
+            height: p.size,
+            borderRadius: "50%",
+            background: ACCENT,
+            opacity: 0,
+            boxShadow: `0 0 ${p.size * 2.4}px rgba(110,231,183,0.55)`,
+            "--peak": p.peak,
+            "--dx": `${p.driftX}px`,
+            "--dy": `${p.driftY}px`,
+            animation: `particleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 
 
 // ── HOOKS ────────────────────────────────────────────────────────────────────

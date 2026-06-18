@@ -546,7 +546,6 @@ function ProjectManagement({
         <SectionHeader
           title="Project Management"
           subtitle={`${totalProjects} total`}
-          action={<PrimaryButton onClick={onAddProject} icon={Plus} small>Add Project</PrimaryButton>}
         />
       </div>
       <div className="px-6 pb-2 pt-4 flex flex-col sm:flex-row gap-3">
