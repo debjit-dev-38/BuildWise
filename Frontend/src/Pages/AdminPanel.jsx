@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useContext } from "react";
+import { UserContext } from "../Context/UserContext";
 import axios from "axios";
 import {
   LayoutDashboard, Users, FolderOpen, BookOpen, Trophy, Settings,
@@ -14,6 +16,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
+  updateUserRole,
   getAdminDashboardSummary,
   getAdminProjects,
   getAdminUsers,
@@ -31,10 +34,8 @@ import ProjectBuilderDrawer from "./ProjectBuilderDrawer";
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" } }) {
-  // Role protection
-  if (!user || user.role !== "admin") return <AccessDenied />;
-
+export default function AdminPanel() {
+  const { user, loading } = useContext(UserContext);
   const [section, setSection] = useState("overview");
   const [collapsed, setCollapsed] = useState(false);
   const [showProjectDrawer, setShowProjectDrawer] = useState(false);
@@ -42,6 +43,12 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const [showNotifs, setShowNotifs] = useState(false);
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userFilter, setUserFilter] = useState("All");
+  const [userPage, setUserPage] = useState(1);
+  const [userTotalPages, setUserTotalPages] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [userError, setUserError] = useState(null);
   const [paths, setPaths] = useState([]);
   const [badges, setBadges] = useState([]);
 
@@ -58,6 +65,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
   const [projectError, setProjectError] = useState(null);
   const PROJECTS_PER_PAGE = 10;
 
+ 
   const fetchProjects = () => {
     return getAdminProjects({
       page: projectPage,
@@ -72,6 +80,19 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
       })
       .catch((err) => setProjectError(err.message));
   };
+
+  const fetchUsers = () => {
+    return getAdminUsers({
+      page: userPage,
+      limit: 5,
+      role: userFilter,
+      search: userSearch,
+    }).then((data) => {
+      setUsers(data.users)
+      setUserTotalPages(data.totalPages)
+      setTotalUsers(data.totalUsers)
+    }).catch((err) => setUserError(err.message))
+  }
 
   const handleSaveProject = async (projectData) => {
     try {
@@ -102,14 +123,14 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
 
   useEffect(() => {
     getAdminDashboardSummary().then(setSummary);
-    getAdminUsers().then(setUsers);
     getAdminLearningPaths().then(setPaths);
     getAdminAchievements().then(setBadges);
   }, []);
 
   useEffect(() => {
     fetchProjects();
-  }, [projectPage, projectFilter, projectSearch]);
+    fetchUsers()
+  }, [projectPage, projectFilter, projectSearch, userPage, userFilter, userSearch]);
 
   const stats = summary?.metrics ?? {};
   const activity = summary?.activity ?? [];
@@ -147,7 +168,18 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
       />
     ),
     paths: <LearningPathManagement paths={paths} setPaths={setPaths} />,
-    users: <UserManagement users={users} setUsers={setUsers} />,
+    users: (<UserManagement
+      users={users}
+      setUsers={setUsers}
+      totalUsers={totalUsers}
+      totalPages={userTotalPages}
+      page={userPage}
+      setPage={setUserPage}
+      search={userSearch}
+      setSearch={setUserSearch}
+      filter={userFilter}
+      setFilter={setUserFilter}
+      fetchUsers={fetchUsers} />),
     analytics: (
       <AnalyticsSection
         chartUserGrowth={chartUserGrowth}
@@ -161,6 +193,14 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
     activity: <ActivityFeed activity={activity} />,
   };
 
+
+   if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (user?.role !== "admin") {
+    return <AccessDenied />;
+  }
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <style>{`
@@ -202,7 +242,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
               <NotificationPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} />
             </div>
             <div className="w-7 h-7 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-xs font-semibold text-white/60 flex-shrink-0">
-              {user.name?.[0] || "A"}
+              {user?.fullName?.[0] || "A"}
             </div>
           </div>
         </div>
@@ -216,7 +256,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
               <motion.div {...fadeUp(0)}
                 className="rounded-2xl border border-white/5 bg-[#111318] px-6 py-5">
                 <div className="flex items-center gap-2.5 mb-1">
-                  <h2 className="text-base font-semibold text-white">Welcome back, {user.name?.split(" ")[0]}</h2>
+                  <h2 className="text-base font-semibold text-white">Welcome back, {user.fullName?.split(" ")[0]}</h2>
                   <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-400/10 border border-emerald-400/15 text-emerald-400 flex items-center gap-1">
                     <Shield size={9} strokeWidth={2.5} /> Admin
                   </span>
@@ -300,7 +340,7 @@ export default function AdminPanel({ user = { role: "admin", name: "Debjit Dey" 
         )}
       </AnimatePresence>
     </div>
-  );
+  ) ;
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -530,16 +570,16 @@ function ProjectManagement({
     return matchSearch && matchFilter;
   });
   const removeProject = async (id) => {
-  try {
-    await axios.delete(
-      `${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`
-    );
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`
+      );
 
-    setProjects((prev) => prev.filter((x) => x._id !== id));
-  } catch (error) {
-    console.error(error);
-  }
-};
+      setProjects((prev) => prev.filter((x) => x._id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318]">
       <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
@@ -596,7 +636,7 @@ function ProjectManagement({
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <GhostButton small icon={Eye} onClick={() => window.open(`/projectdetails/${p.slug}`, "_blank")}>View</GhostButton>
                         <GhostButton small icon={Edit2} onClick={() => onEditProject(p)}>Edit</GhostButton>
-                        <GhostButton small danger icon={Trash2}  onClick={() => removeProject(p._id)}>Del</GhostButton>
+                        <GhostButton small danger icon={Trash2} onClick={() => removeProject(p._id)}>Del</GhostButton>
                       </div>
                     </td>
                   </motion.tr>
@@ -694,96 +734,173 @@ function LearningPathManagement({ paths, setPaths }) {
   );
 }
 
-function UserManagement({ users, setUsers }) {
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 4;
+function UserManagement({ users, setUsers, totalUsers, totalPages, page, setPage, search, setSearch, filter, setFilter, fetchUsers }) {
 
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    return (u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
-      (roleFilter === "All" || u.role === roleFilter);
-  });
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const promote = async (id) => {
+    await updateUserRole(id, "admin");
+    fetchUsers();
+  };
 
-  const promote = (id) => setUsers((u) => u.map((x) => x.id === id ? { ...x, role: "admin" } : x));
-  const demote = (id) => setUsers((u) => u.map((x) => x.id === id ? { ...x, role: "user" } : x));
-  const remove = (id) => setUsers((u) => u.filter((x) => x.id !== id));
+  const demote = async (id) => {
+    await updateUserRole(id, "user");
+    fetchUsers();
+  };
 
-  // TODO: User management API
+  const remove = (id) =>
+    setUsers((u) =>
+      u.filter((x) => x._id !== id)
+    );
 
   return (
-    <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318] p-6">
-      <SectionHeader title="User Management" subtitle={`${users.length} registered users`} />
+    <motion.section
+      {...fadeUp(0.1)}
+      className="rounded-2xl border border-white/5 bg-[#111318] p-6"
+    >
+      <SectionHeader
+        title="User Management"
+        subtitle={`${totalUsers} registered users`}
+      />
+
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex-1"><SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search users…" /></div>
+        <div className="flex-1">
+          <SearchBar
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Search users..."
+          />
+        </div>
+
         <div className="flex gap-1.5">
-          {["All", "admin", "moderator", "user"].map((r) => (
-            <button key={r} onClick={() => { setRoleFilter(r); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${roleFilter === r
+          {["All", "admin", "user"].map((r) => (
+            <button
+              key={r}
+              onClick={() => {
+                setFilter(r);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${filter === r
                 ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
                 : "border-white/7 text-white/35 hover:text-white/70 hover:border-white/15"
-                }`}>
+                }`}
+            >
               {r}
             </button>
           ))}
         </div>
       </div>
+
       <div className="space-y-2">
         <AnimatePresence>
-          {paginated.map((u, i) => (
-            <motion.div key={u.id}
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+          {users.map((u, i) => (
+            <motion.div
+              key={u._id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
               transition={{ delay: i * 0.04 }}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:border-white/10 transition-colors group">
+              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:border-white/10 transition-colors group"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/5 border border-white/8 flex items-center justify-center text-xs font-semibold text-white/60 flex-shrink-0">
-                  {u.name[0]}
+                  {u.fullName?.[0]}
                 </div>
+
                 <div>
-                  <p className="text-sm font-medium text-white/85">{u.name}</p>
-                  <p className="text-xs text-white/35">{u.email}</p>
+                  <p className="text-sm font-medium text-white/85">
+                    {u.fullName}
+                  </p>
+                  <p className="text-xs text-white/35">
+                    {u.username}
+                  </p>
+                  <p className="text-xs text-white/35">
+                    {u.email}
+                  </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge label={u.role} colorClass={roleColor(u.role)} />
-                <span className="text-xs text-white/25 hidden sm:block">Joined {u.joined}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${u.progress}%` }} />
-                  </div>
-                  <span className="text-xs text-white/30">{u.progress}%</span>
-                </div>
+                <Badge
+                  label={u.role}
+                  colorClass={roleColor(u.role)}
+                />
+
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {u.role !== "admin"
-                    ? <GhostButton small icon={UserCheck} onClick={() => promote(u.id)}>Promote</GhostButton>
-                    : <GhostButton small icon={UserX} onClick={() => demote(u.id)}>Demote</GhostButton>}
-                  <GhostButton small danger icon={Trash2} onClick={() => remove(u.id)}>Delete</GhostButton>
+                  {u.role !== "admin" ? (
+                    <GhostButton
+                      small
+                      icon={UserCheck}
+                      onClick={() => promote(u._id)}
+                    >
+                      Promote
+                    </GhostButton>
+                  ) : (
+                    <GhostButton
+                      small
+                      icon={UserX}
+                      onClick={() => demote(u._id)}
+                    >
+                      Demote
+                    </GhostButton>
+                  )}
+
+                  <GhostButton
+                    small
+                    danger
+                    icon={Trash2}
+                    onClick={() => remove(u._id)}
+                  >
+                    Delete
+                  </GhostButton>
                 </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {users.length === 0 && (
+          <div className="py-10 text-center text-white/30">
+            No users found
+          </div>
+        )}
       </div>
+
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-5">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+          <button
+            onClick={() =>
+              setPage((p) => Math.max(1, p - 1))
+            }
+            disabled={page === 1}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30"
+          >
             <ChevronLeft size={13} />
           </button>
+
           {Array.from({ length: totalPages }).map((_, i) => (
-            <button key={i} onClick={() => setPage(i + 1)}
-              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={`w-7 h-7 rounded-lg text-xs font-medium ${page === i + 1
                 ? "bg-emerald-400 text-black"
                 : "text-white/35 hover:text-white/70 border border-white/7"
-                }`}>
+                }`}
+            >
               {i + 1}
             </button>
           ))}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
+
+          <button
+            onClick={() =>
+              setPage((p) =>
+                Math.min(totalPages, p + 1)
+              )
+            }
+            disabled={page === totalPages}
+            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30"
+          >
             <ChevronRight size={13} />
           </button>
         </div>

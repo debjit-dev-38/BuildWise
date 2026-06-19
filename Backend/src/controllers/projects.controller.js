@@ -190,8 +190,11 @@ const getProject = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-        filter.$text = { $search: search };
-    }
+    filter.name = {
+        $regex: search,
+        $options: "i"
+    };
+}
 
     // ── Build the sort object ──────────────────────────────────────
     const sortMap = {
@@ -204,6 +207,7 @@ const getProject = asyncHandler(async (req, res) => {
 
     // ── Run query + count in parallel ───────────────────────────────
     const [projects, totalProjects] = await Promise.all([
+        
         Project.find(filter)
             .select(
                 "_id slug name description color category difficulty duration stack metrics image featured newest recommended status modules"
@@ -215,6 +219,7 @@ const getProject = asyncHandler(async (req, res) => {
 
         Project.countDocuments(filter),
     ]);
+   
     return res.status(200).json(
         new ApiResponse(
             200,

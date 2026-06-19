@@ -12,6 +12,7 @@ import Login from './Pages/Login'
 import Register from './Pages/Register'
 import { Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { BuildWiseToaster } from './Components/BuildWiseToast'
 const App = () => {
     const user = {
         name: "Debjit",
@@ -19,7 +20,7 @@ const App = () => {
     };
     return (
         <>
-            <Toaster position="top-right" toastOptions={{ duration: 3000, }} F />
+            <BuildWiseToaster/>
             <Routes>
                 <Route path='/' element={<Home />} />
                 <Route path='/projects' element={<Projects />} />

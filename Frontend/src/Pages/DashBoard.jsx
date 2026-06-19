@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import {
@@ -14,7 +16,9 @@ import {
   PlusCircle, Edit3, UserCog, BookOpenCheck,
 } from "lucide-react";
 import { getDashboardSummary } from "../Services/dashboardService";
-import { COLORS, FONTS,C } from "../Constants/theme";
+import { COLORS, FONTS, C } from "../Constants/theme";
+import { useContext } from "react";
+import { UserContext } from "../Context/UserContext";
 
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
@@ -31,22 +35,73 @@ const NAV = [
   { id: "admin", label: "Admin Panel", icon: Shield, path: "/admin", adminOnly: true },
 ];
 
-
 // ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const { user, loading } = useContext(UserContext)
   const [active, setActive] = useState("home");
   const [collapsed, setCollapsed] = useState(false);
   const scrollContainerRef = useRef(null);
   const [data, setData] = useState(null);
-
+  const navigate = useNavigate()
   useEffect(() => {
     getDashboardSummary().then(setData);
   }, []);
 
   if (!data) return null;
 
-  const { user, stats, paths, projects, activity, achievements } = data;
+  const { stats, paths, projects, activity, achievements } = data;
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (!user) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0A0A0A",
+          color: "#F0F0F0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 500,
+            textAlign: "center",
+            padding: 40,
+            borderRadius: 16,
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: "'Instrument Serif', serif",
+              fontSize: 36,
+              marginBottom: 12,
+            }}
+          >
+            Access Required
+          </h1>
 
+          <p
+            style={{
+              color: "rgba(255,255,255,0.55)",
+              marginBottom: 24,
+            }}
+          >
+            Sign in to access your dashboard, projects, learning paths,
+            achievements and progress.
+          </p>
+
+          <button onClick={() => navigate("/login")}>
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
       <style>{`
@@ -69,7 +124,6 @@ export default function Dashboard() {
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         scrollContainerRef={scrollContainerRef}
-        user={user}
       />
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflowY: "auto", maxHeight: "100vh" }}>
@@ -132,7 +186,7 @@ export default function Dashboard() {
                 <LearningPathsSection paths={paths} />
 
                 {/* [Settings Section] */}
-                <SettingsSection user={user}/>
+                <SettingsSection user={user} />
               </div>
 
               {/* Right col */}
@@ -147,7 +201,7 @@ export default function Dashboard() {
                   </div>
                 </FadeIn>
 
-                <ActivityFeed activity={activity}/>
+                <ActivityFeed activity={activity} />
 
                 <FadeIn delay={0.1}>
                   <div style={{ borderRadius: 14, padding: "24px 20px", border: "1px solid rgba(110,231,183,0.15)", background: "rgba(110,231,183,0.03)", backdropFilter: "blur(20px)", textAlign: "center", position: "relative", overflow: "hidden" }}>
@@ -342,8 +396,8 @@ const labelStyle = {
 };
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
-function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRef,user }) {
-
+function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRef }) {
+  const { user } = useContext(UserContext);
   function scrollToSection(sectionId) {
     const container = scrollContainerRef.current;
     const target = document.getElementById(sectionId);
@@ -452,10 +506,29 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRe
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "8px" : "8px 10px", borderRadius: 9, cursor: "pointer", transition: "background 0.2s" }}
           onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #6EE7B7, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: "#0A0A0A", flexShrink: 0 }}>D</div>
+          <div style={{ display: "flex", alignItems: "center", margin: 20, flexShrink: 0 }}>
+            <div
+              title={user.fullName}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "#6EE7B7",
+                color: "#0A0A0A",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {user.fullName?.charAt(0).toUpperCase()}
+            </div>
+          </div>
           {!collapsed && (
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Debjit</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.fullName}</div>
               <div style={{ fontSize: 11, color: "#555", whiteSpace: "nowrap" }}>Level 4 · Builder</div>
             </div>
           )}
@@ -467,6 +540,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRe
 
 // ── HEADER ────────────────────────────────────────────────────────────────────
 function Header() {
+  const {user} = useContext(UserContext)
   const [notifs] = useState(3);
   return (
     <motion.header
@@ -492,7 +566,24 @@ function Header() {
             <div style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#0A0A0A", border: "2px solid #0A0A0A" }}>{notifs}</div>
           )}
         </div>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #6EE7B7, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#0A0A0A", cursor: "pointer", border: "2px solid rgba(110,231,183,0.3)" }}>D</div>
+        <div
+          title={user.fullName}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "#6EE7B7",
+            color: "#0A0A0A",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          {user.fullName?.charAt(0).toUpperCase()}
+        </div>
       </div>
     </motion.header>
   );
@@ -500,6 +591,7 @@ function Header() {
 
 // ── HERO WELCOME ─────────────────────────────────────────────────────────────
 function WelcomeHero() {
+  const { user } = useContext(UserContext);
   return (
     <div style={{ padding: "40px 32px 0", position: "relative" }}>
       <div style={{ position: "absolute", top: 0, left: "30%", width: 400, height: 200, background: `radial-gradient(ellipse, ${C.green}09 0%, transparent 70%)`, pointerEvents: "none" }} />
@@ -512,7 +604,7 @@ function WelcomeHero() {
               <span style={{ fontSize: 11, color: C.green, fontWeight: 500 }}>12-day streak active 🔥</span>
             </div>
             <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(28px, 4vw, 44px)", color: "#f0f0f0", letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 10 }}>
-              Welcome back, Debjit.
+              Welcome back, {user.fullName.split(" ")[0]}
             </h1>
             <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.65, maxWidth: 440 }}>
               Continue your learning journey and ship your next project. You're 75% through AI Chat App.
@@ -732,7 +824,7 @@ function ProjectCard({ p, i }) {
 }
 
 // ── ACTIVITY FEED ─────────────────────────────────────────────────────────────
-function ActivityFeed({activity}) {
+function ActivityFeed({ activity }) {
   return (
     <FadeIn delay={0.1}>
       <div>
@@ -770,7 +862,7 @@ function ActivityFeed({activity}) {
 }
 
 // ── ACHIEVEMENTS SECTION ──────────────────────────────────────────────────────
-function AchievementsSection({achievements}) {
+function AchievementsSection({ achievements }) {
   return (
     <FadeIn delay={0.1}>
       <div id="achievements">
@@ -801,7 +893,7 @@ function AchievementsSection({achievements}) {
 }
 
 // ── LEARNING PATHS SECTION ────────────────────────────────────────────────────
-function LearningPathsSection({paths}) {
+function LearningPathsSection({ paths }) {
   return (
     <FadeIn delay={0.05}>
       <div id="learning-paths">
@@ -1074,8 +1166,24 @@ function LearningPreferencesCard() {
 }
 
 // [Account Settings Card]
-function AccountSettingsCard({user}) {
+function AccountSettingsCard() {
+  const { user, setUser } = useContext(UserContext)
   const [showConfirm, setShowConfirm] = useState(false);
+  const navigate = useNavigate()
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/users/logout`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+      setUser(null)
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <Glass style={{ padding: "28px 26px" }}>
@@ -1094,6 +1202,7 @@ function AccountSettingsCard({user}) {
 
       <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
         <GhostBtn><KeyRound size={13} /> Change Password</GhostBtn>
+        <GhostBtn onClick={handleLogout}><User size={13} /> Logout</GhostBtn>
 
         {/* Delete account — shows inline confirmation step first */}
         {!showConfirm ? (
@@ -1170,7 +1279,7 @@ function ProgressSettingsCard() {
 // To integrate with real auth: replace `user` with useAuth() context value.
 
 // [Settings Section] — anchor wrapper + stacked cards
-function SettingsSection({user}) {
+function SettingsSection({ user }) {
   return (
     <FadeIn delay={0.05}>
       <div id="settings">

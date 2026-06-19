@@ -398,8 +398,6 @@ export default function Register() {
     e.preventDefault();
     setError("");
     if (!fullName || !username || !email || !password) { setError("Please fill in all fields."); return; }
-    if (usernameStatus === "taken") { setError("That username is already taken. Please choose another."); return; }
-    if (usernameStatus === "checking") { setError("Please wait while we verify your username."); return; }
     if (password != confirmPassword) { setError("Password is different."); return; }
     setLoading(true);
     try {
@@ -413,7 +411,6 @@ export default function Register() {
       toast.success("User registered successfully!");
       navigate("/login");
     } catch (err) {
-      console.log(err)
       setError(err.response?.data?.message ||
         "Registration failed"
       );

@@ -35,7 +35,7 @@ const registerUser = asyncHandler(async (req, res) => {
     })
 
     if (existedUser) {
-        throw new ApiError(409, "user with email or username exists")
+        throw new ApiError(409, "User with email or username exists")
     }
 
     const user = await User.create({
@@ -61,11 +61,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body
-    console.log(req.body);
-    console.log(username);
-    console.log(email);
     if (!(username || email)) {
-        throw new ApiError(400, "username or email is required")
+        throw new ApiError(400, "Username or email is required")
     }
     const user = await User.findOne({
         $or: [{ username }, { email }]
@@ -87,8 +84,8 @@ const loginUser = asyncHandler(async (req, res) => {
     //cookies
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: process.env.NODE_ENV === "production",
+    };
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
@@ -117,8 +114,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     )
     const options = {
         httpOnly: true,
-        secure: true
-    }
+        secure: process.env.NODE_ENV === "production",
+    };
     return res.status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
@@ -144,8 +141,8 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: true
-        }
+            secure: process.env.NODE_ENV === "production",
+        };
 
         const { accessToken, refreshToken: newrefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
@@ -247,5 +244,81 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
 })
 
+const getUsers = asyncHandler(async (req, res) => {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 9, 1);
 
-export { registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
+    const { role, search } = req.query
+
+    const filter = {}
+
+    if (role && role !== "All") {
+        filter.role = role;
+    }
+
+    if (search) {
+    filter.fullName = {
+        $regex: search,
+        $options: "i"
+    };
+
+}
+
+    const [users, totalUsers] = await Promise.all([
+        User.find(filter)
+            .select(
+                "_id fullName username email role"
+            )
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean(),
+
+        User.countDocuments(filter),
+    ]);
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                users,
+                totalUsers,
+                page,
+                totalPages: Math.ceil(totalUsers / limit),
+                hasNextPage: page * limit < totalUsers,
+            },
+            "Users fetched successfully"
+        )
+    )
+})
+
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!["admin", "user"].includes(role)) {
+    throw new ApiError(400, "Invalid role");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { role },
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).select("_id fullName email role");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user,
+      `User role updated to ${role}`
+    )
+  );
+});
+
+
+export {updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }

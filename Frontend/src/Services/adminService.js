@@ -29,11 +29,17 @@ export const getAdminProjects = async ({
   tech = [],
   sort,
   search,
-} = {}) => {
+} = {}) => {   //{} prevents crashes if someone calls getAdminProjects()
 
   const params = {
     page,
-    limit,
+    limit,                
+     /* Conditional property inclusion 
+     This is the interesting part: ...(category && category !== "all" && { category }),Suppose:category = "Web Development"
+     Evaluation:category && category !== "all" becomes:"Web Development" && true 
+     which returns:true
+     Then:true && { category }returns:{ category: "Web Development" }
+     Spread operator adds it:{  page: 1,  limit: 9,  category: "Web Development"} */
     ...(category && category !== "all" && { category }),
     ...(difficulty && difficulty !== "All" && { difficulty }),
     ...(duration && duration !== "Any" && { duration }),
@@ -50,8 +56,31 @@ export const getAdminLearningPaths = async () => {
   return adminLearningPaths;
 };
 
-export const getAdminUsers = async () => {
-  return adminUsers;
+export const getAdminUsers = async ({
+  page=1,
+  limit=5,
+  role,
+  search
+}={}) => {
+  const params={
+    page,
+    limit,
+    ...(role && role !== "All" && {role}),
+    ...(search && {search})
+  }
+
+  const {data} = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/users/get-users`, { params})
+
+  return data.data
+};
+
+export const updateUserRole = async (id, role) => {
+  const { data } = await axios.patch(
+    `${import.meta.env.VITE_APP_URI}/api/v1/users/role/${id}`,
+    { role }
+  );
+
+  return data.data;
 };
 
 export const getAdminUserById = async (id) => {
