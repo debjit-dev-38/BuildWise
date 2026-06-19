@@ -85,6 +85,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
     };
     return res
         .status(200)
@@ -115,6 +116,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
     };
     return res.status(200)
         .clearCookie("accessToken", options)
@@ -142,6 +144,7 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
         const options = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            sameSite: "none",
         };
 
         const { accessToken, refreshToken: newrefreshToken } = await generateAccessAndRefreshTokens(user._id)
@@ -257,12 +260,12 @@ const getUsers = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-    filter.fullName = {
-        $regex: search,
-        $options: "i"
-    };
+        filter.fullName = {
+            $regex: search,
+            $options: "i"
+        };
 
-}
+    }
 
     const [users, totalUsers] = await Promise.all([
         User.find(filter)
@@ -291,34 +294,34 @@ const getUsers = asyncHandler(async (req, res) => {
 })
 
 const updateUserRole = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { role } = req.body;
+    const { id } = req.params;
+    const { role } = req.body;
 
-  if (!["admin", "user"].includes(role)) {
-    throw new ApiError(400, "Invalid role");
-  }
-
-  const user = await User.findByIdAndUpdate(
-    id,
-    { role },
-    {
-      new: true,
-      runValidators: true,
+    if (!["admin", "user"].includes(role)) {
+        throw new ApiError(400, "Invalid role");
     }
-  ).select("_id fullName email role");
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+    const user = await User.findByIdAndUpdate(
+        id,
+        { role },
+        {
+            new: true,
+            runValidators: true,
+        }
+    ).select("_id fullName email role");
 
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      user,
-      `User role updated to ${role}`
-    )
-  );
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            user,
+            `User role updated to ${role}`
+        )
+    );
 });
 
 
-export {updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
+export { updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
