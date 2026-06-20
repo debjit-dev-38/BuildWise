@@ -2,6 +2,7 @@ import { Router } from "express";
 import {updateUserRole,getUsers, changeCurrentPassword, getCurrentUser, loginUser, logoutUser, RefreshAccessToken, registerUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyAdmin } from "../middlewares/verifyAdmin.middleware.js";
 import multer from "multer";
 
 const router =Router()
@@ -20,7 +21,7 @@ router.route("/change-password").post(verifyJWT,changeCurrentPassword)
 
 router.route("/current-user").get(verifyJWT,getCurrentUser)
 
-router.route("/role/:id").patch(updateUserRole);
+router.route("/role/:id").patch(verifyJWT,verifyAdmin,updateUserRole);
 
 router.route("/get-users").get(getUsers)
 

@@ -233,15 +233,15 @@ export default function AdminPanel() {
             <GhostButton small icon={Users} onClick={() => setSection("users")}>Manage Users</GhostButton>
             <div className="relative">
               <button onClick={() => setShowNotifs((v) => !v)}
-                className="relative p-2 rounded-lg border border-white/7 text-white/30 hover:text-white/60 hover:border-white/15 transition-colors">
-                <Bell size={14} />
-                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-rose-500 text-[9px] font-bold flex items-center justify-center text-white leading-none">
+                className="relative p-2 rounded-lg border border-white/15 text-white/50 hover:text-white/60 hover:border-white/15 transition-colors">
+                <Bell size={15} />
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#6EE7B7] text-[9px] font-bold flex items-center justify-center text-black leading-none">
                   {notifications.length}
                 </span>
               </button>
               <NotificationPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} />
             </div>
-            <div className="w-7 h-7 rounded-full bg-white/6 border border-white/10 flex items-center justify-center text-xs font-semibold text-white/60 flex-shrink-0">
+            <div className="w-8 h-8 bg-[#6EE7B7] rounded-full border border-white/10 flex items-center justify-center text-xs font-semibold text-black flex-shrink-0">
               {user?.fullName?.[0] || "A"}
             </div>
           </div>

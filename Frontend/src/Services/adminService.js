@@ -77,7 +77,10 @@ export const getAdminUsers = async ({
 export const updateUserRole = async (id, role) => {
   const { data } = await axios.patch(
     `${import.meta.env.VITE_APP_URI}/api/v1/users/role/${id}`,
-    { role }
+    { role },
+    {
+      withCredentials:true
+    }
   );
 
   return data.data;

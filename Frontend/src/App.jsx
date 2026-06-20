@@ -14,10 +14,7 @@ import { Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { BuildWiseToaster } from './Components/BuildWiseToast'
 const App = () => {
-    const user = {
-        name: "Debjit",
-        role: "admin", // change to "user" to test
-    };
+    
     return (
         <>
             <BuildWiseToaster/>
@@ -27,14 +24,7 @@ const App = () => {
                 <Route path='/dashboard' element={<DashBoard />} />
                 <Route path="/projectdetails/:slug" element={<ProjectDetails />} />
                 <Route path="/about" element={<About />} />
-                <Route
-                    path="/admin"
-                    element={
-                        user?.role === "admin"
-                            ? <AdminPanel />
-                            : <Navigate to="/dashboard" />
-                    }
-                />
+                <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/projectdetails/:slug/learningpage" element={<BuildWiseLearningPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
