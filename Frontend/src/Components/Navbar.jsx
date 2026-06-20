@@ -43,9 +43,7 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  
 
   return (
     <motion.nav

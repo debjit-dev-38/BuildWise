@@ -7,47 +7,49 @@ const UserContextProvider = (props) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const getCurrentUser = async () => {
-    try {
-        const res = await axios.get(
-            `${import.meta.env.VITE_APP_URI}/api/v1/users/current-user`,
-            { withCredentials: true }
-        );
-        setUser(res.data.data);
+        try {
+            const res = await axios.get(
+                `${import.meta.env.VITE_APP_URI}/api/v1/users/current-user`,
+                {
+                    withCredentials: true,
+                }
+            );
 
-    } catch (error) {
-        const status = error.response?.status;
+            setUser(res.data.data);
 
-        if (status === 401) {
-            // Token expired — try refresh
-            try {
-                await axios.post(
-                    `${import.meta.env.VITE_APP_URI}/api/v1/users/refresh-token`,
-                    {},
-                    { withCredentials: true }
-                );
-                const res = await axios.get(
-                    `${import.meta.env.VITE_APP_URI}/api/v1/users/current-user`,
-                    { withCredentials: true }
-                );
-                setUser(res.data.data);
+        } catch (error) {
 
-            } catch (refreshError) {
-                setUser(null); // genuinely unauthenticated
+            if (error.response?.status === 401) {
+                try {
+
+                    await axios.post(
+                        `${import.meta.env.VITE_APP_URI}/api/v1/users/refresh-token`,
+                        {},
+                        {
+                            withCredentials: true,
+                        }
+                    );
+
+                    const res = await axios.get(
+                        `${import.meta.env.VITE_APP_URI}/api/v1/users/current-user`,
+                        {
+                            withCredentials: true,
+                        }
+                    );
+
+                    setUser(res.data.data);
+
+                } catch (refreshError) {
+                    setUser(null);
+                }
+            } else {
+                setUser(null);
             }
 
-        } else if (status >= 500 || !error.response) {
-            // Server down, cold start, network blip — don't log out
-            // Just leave user state as-is, keep them logged in optimistically
-            console.warn("Server unreachable, preserving auth state");
-
-        } else {
-            setUser(null);
+        } finally {
+            setLoading(false);
         }
-
-    } finally {
-        setLoading(false);
-    }
-};
+    };
     useEffect(() => {
     getCurrentUser();
 }, []);
