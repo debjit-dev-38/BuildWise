@@ -7,13 +7,30 @@ import validator from "validator";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 const generateAccessAndRefreshTokens = async (userId) => {
+    /*
+        1. User logs in
+    2. generateAccessAndRefreshTokens() runs
+    3. refreshToken is generated and assigned to user.refreshToken
+    4. user.save() fires — but without await, the function doesn't wait for it
+    5. Tokens are returned and sent to the client immediately
+    6. Meanwhile, MongoDB is still writing the refreshToken in the background
+    
+    7. [Some time later] Access token expires
+    8. Frontend calls POST /refresh-token with the cookie
+    9. Backend reads refreshToken from DB
+    10. If step 6 hasn't completed yet → DB still has the OLD token
+    11. incomingRefreshToken !== user.refreshToken → "Refresh token is expired"
+    12. User gets logged out
+    */
+
+
     try {
         const user = await User.findById(userId)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
         user.refreshToken = refreshToken
-        await user.save({ validateBeforeSave: false })
+        await user.save({ validateBeforeSave: false })   //withour await caused auto logging out sometimes
 
         return { accessToken, refreshToken }
     } catch (error) {

@@ -31,7 +31,7 @@ const G = {
 };
 
 const Navbar = () => {
-  const { user, setUser } = useContext(UserContext)
+  const { user, setUser,loading } = useContext(UserContext)
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate()
@@ -42,6 +42,10 @@ const Navbar = () => {
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <motion.nav
