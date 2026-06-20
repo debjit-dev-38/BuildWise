@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContext } from "react";
+import Loader from "../Components/Loader";
 import { UserContext } from "../Context/UserContext";
 import axios from "axios";
 import {
@@ -65,7 +66,7 @@ export default function AdminPanel() {
   const [projectError, setProjectError] = useState(null);
   const PROJECTS_PER_PAGE = 10;
 
- 
+
   const fetchProjects = () => {
     return getAdminProjects({
       page: projectPage,
@@ -194,8 +195,8 @@ export default function AdminPanel() {
   };
 
 
-   if (loading) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return <Loader text="Checking access..." />;
   }
 
   if (user?.role !== "admin") {
@@ -340,7 +341,7 @@ export default function AdminPanel() {
         )}
       </AnimatePresence>
     </div>
-  ) ;
+  );
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────

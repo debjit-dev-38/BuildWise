@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import { bwToast } from "../Components/BuildWiseToast";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../Services/api";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -403,16 +404,27 @@ export default function Login() {
     setLoading(true);
     try {
       // TODO: await loginUser({ email, password });
-      await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/users/login`, {
-        username,
-        email,
-        password,
-      },
+      const res = await api.post(
+        "/api/v1/users/login",
         {
-          withCredentials: true,
-        })
+          username,
+          email,
+          password,
+        }
+      );
+
+      localStorage.setItem(
+        "accessToken",
+        res.data.data.accessToken
+      );
+
+      localStorage.setItem(
+        "refreshToken",
+        res.data.data.refreshToken
+      );
+
+      await getCurrentUser();
       bwToast.success("User logged in successfully")
-      await getCurrentUser()
       navigate("/");
     } catch (err) {
       bwToast.error("Couldn't Login")

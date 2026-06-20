@@ -23,7 +23,7 @@ router.route("/current-user").get(verifyJWT,getCurrentUser)
 
 router.route("/role/:id").patch(verifyJWT,verifyAdmin,updateUserRole);
 
-router.route("/get-users").get(getUsers)
+router.route("/get-users").get(verifyJWT,verifyAdmin,getUsers)
 
 router.route("/update-account").patch(verifyJWT,updateAccountDetails)
 

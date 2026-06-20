@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../Services/api";
 import axios from "axios";
+import Loader from "../Components/Loader";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import {
@@ -51,26 +53,26 @@ export default function Dashboard() {
 
   const { stats, paths, projects, activity, achievements } = data;
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader text="Authenticating..." />;
   }
   if (!user) {
     return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        className="text-center max-w-sm mx-auto p-8">
-        <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
-          <Shield size={20} className="text-rose-400/70" />
-        </div>
-        <h1 className="text-xl font-semibold text-white mb-3">Access Required</h1>
-        <p className="text-white/40 text-sm mb-6 leading-relaxed">
-          Sign in to access your dashboard, projects, learning paths, achievements and progress.
-        </p>
-        <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
-          <ChevronLeft size={14} strokeWidth={2.5} /> Login
-        </a>
-      </motion.div>
-    </div>
-  );
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-sm mx-auto p-8">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
+            <Shield size={20} className="text-rose-400/70" />
+          </div>
+          <h1 className="text-xl font-semibold text-white mb-3">Access Required</h1>
+          <p className="text-white/40 text-sm mb-6 leading-relaxed">
+            Sign in to access your dashboard, projects, learning paths, achievements and progress.
+          </p>
+          <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
+            <ChevronLeft size={14} strokeWidth={2.5} /> Login
+          </a>
+        </motion.div>
+      </div>
+    );
   }
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
@@ -1143,16 +1145,14 @@ function AccountSettingsCard() {
   const navigate = useNavigate()
   const handleLogout = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/users/logout`,
-        {},
-        {
-          withCredentials: true,
-        }
-      );
+      await api.post("/api/v1/users/logout", {});
     } catch (error) {
       console.error(error);
     } finally {
-      setUser(null)
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+
+      setUser(null);
       navigate("/");
     }
   };
