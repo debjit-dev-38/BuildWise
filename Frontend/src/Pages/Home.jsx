@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { Link } from "react-router-dom";
 import { bwToast } from "../Components/BuildWiseToast";
 import { motion, AnimatePresence, useInView } from "framer-motion";
@@ -15,6 +15,8 @@ import { getFeaturedProjects } from "../Services/projectService";
 import { getPublishedPaths } from "../Services/learningPathService";
 import { COLORS, FONTS } from "../Constants/theme";
 import toast from "react-hot-toast";
+import { UserContext } from "../Context/UserContext";
+import Loader from "../Components/Loader";
 
 
 const ACCENT = "#6EE7B7";
@@ -30,6 +32,7 @@ const MONO = "'DM Mono', monospace";
 
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function Home() {
+  const{loading}=useContext(UserContext)
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [paths, setPaths] = useState([]);
   useEffect(() => {
@@ -37,6 +40,9 @@ export default function Home() {
     getPublishedPaths().then(setPaths);
   }, []);
   
+  if(loading)
+    return <Loader/>
+
   return (
     <div className="min-h-screen" style={{ background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
