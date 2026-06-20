@@ -917,7 +917,7 @@ function AnalyticsSection({ chartUserGrowth = [], chartProjectViews = [], chartP
         {[
           { label: "Most Viewed Project", value: "AI Chat Interface", sub: "2,481 views", icon: Eye },
           { label: "Most Popular Path", value: "Frontend Mastery", sub: "312 completions", icon: TrendingUp },
-          { label: "Most Active User", value: "Debjit Roy", sub: "92% completion rate", icon: Zap },
+          { label: "Most Active User", value: "Debjit Dey", sub: "92% completion rate", icon: Zap },
         ].map(({ label, value, sub, icon: Icon }) => (
           <div key={label} className="rounded-xl border border-white/5 bg-[#111318] px-5 py-4 hover:border-white/10 transition-colors">
             <div className="flex items-center gap-1.5 mb-2.5">

@@ -5,7 +5,7 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import { NavLink } from "react-router-dom";
 import {
   Hammer, Home, FolderOpen, Map, Trophy, Settings, Bell,
-  Search, ChevronRight, ArrowRight, Flame, BookOpen, Clock,
+  Search, ChevronLeft, ChevronRight, ArrowRight, Flame, BookOpen, Clock,
   Star, TrendingUp, Zap, Play, Check, Lock, BarChart2,
   GitCommit, Code2, Rocket, Brain, Monitor, Server, Layers,
   Smartphone, Menu, X, User, LogOut, ExternalLink, Sparkles,
@@ -55,52 +55,22 @@ export default function Dashboard() {
   }
   if (!user) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#0A0A0A",
-          color: "#F0F0F0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 500,
-            textAlign: "center",
-            padding: 40,
-            borderRadius: 16,
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "'Instrument Serif', serif",
-              fontSize: 36,
-              marginBottom: 12,
-            }}
-          >
-            Access Required
-          </h1>
-
-          <p
-            style={{
-              color: "rgba(255,255,255,0.55)",
-              marginBottom: 24,
-            }}
-          >
-            Sign in to access your dashboard, projects, learning paths,
-            achievements and progress.
-          </p>
-
-          <button onClick={() => navigate("/login")}>
-            Login
-          </button>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        className="text-center max-w-sm mx-auto p-8">
+        <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
+          <Shield size={20} className="text-rose-400/70" />
         </div>
-      </div>
-    );
+        <h1 className="text-xl font-semibold text-white mb-3">Access Required</h1>
+        <p className="text-white/40 text-sm mb-6 leading-relaxed">
+          Sign in to access your dashboard, projects, learning paths, achievements and progress.
+        </p>
+        <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
+          <ChevronLeft size={14} strokeWidth={2.5} /> Login
+        </a>
+      </motion.div>
+    </div>
+  );
   }
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
@@ -540,7 +510,7 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRe
 
 // ── HEADER ────────────────────────────────────────────────────────────────────
 function Header() {
-  const {user} = useContext(UserContext)
+  const { user } = useContext(UserContext)
   const [notifs] = useState(3);
   return (
     <motion.header
@@ -1012,11 +982,12 @@ function InfoRow({ label, value }) {
 
 // [Profile Information Card]
 function ProfileCard() {
+  const { user } = useContext(UserContext)
   const [form, setForm] = useState({
-    name: "Debjit Roy",
-    email: "debjit@buildwise.dev",
+    name: user?.fullName,
+    email: user?.email,
     bio: "Full-stack learner building real products.",
-    college: "IIT Bombay",
+    college: "VIT VELLORE",
     github: "https://github.com/debjit",
     linkedin: "https://linkedin.com/in/debjit",
   });
@@ -1178,10 +1149,11 @@ function AccountSettingsCard() {
           withCredentials: true,
         }
       );
-      setUser(null)
-      navigate("/");
     } catch (error) {
       console.error(error);
+    } finally {
+      setUser(null)
+      navigate("/");
     }
   };
 
@@ -1197,8 +1169,8 @@ function AccountSettingsCard() {
         </div>
       </div>
 
-      <InfoRow label="Email Address" value="debjit@buildwise.dev" />
-      <InfoRow label="Account Role" value={user?.role === "admin" ? "Administrator" : "Builder"} />
+      <InfoRow label="Email Address" value={user?.email} />
+      <InfoRow label="Account Role" value={user?.role === "admin" ? "Administrator" : "User"} />
 
       <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
         <GhostBtn><KeyRound size={13} /> Change Password</GhostBtn>

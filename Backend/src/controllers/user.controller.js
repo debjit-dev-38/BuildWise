@@ -85,7 +85,10 @@ const loginUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
+        sameSite:
+            process.env.NODE_ENV === "production"
+                ? "none"
+                : "lax",
     };
     return res
         .status(200)
@@ -116,7 +119,10 @@ const logoutUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
+        sameSite:
+            process.env.NODE_ENV === "production"
+                ? "none"
+                : "lax",
     };
     return res.status(200)
         .clearCookie("accessToken", options)
@@ -133,7 +139,7 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
 
     try {
         const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
-        const user = await User.findById(decodedToken?._id)
+        const user = await User.findById(decodedToken?._id).select("+refreshToken")
         if (!user) {
             throw new ApiError(401, "Invalid refresh token")
         }
@@ -144,7 +150,10 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
         const options = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "none",
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
         };
 
         const { accessToken, refreshToken: newrefreshToken } = await generateAccessAndRefreshTokens(user._id)

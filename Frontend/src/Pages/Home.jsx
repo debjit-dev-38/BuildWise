@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { bwToast } from "../Components/BuildWiseToast";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   Hammer, ArrowRight, Play,
@@ -13,6 +14,7 @@ import { testimonials } from "../data/testimonials";
 import { getFeaturedProjects } from "../Services/projectService";
 import { getPublishedPaths } from "../Services/learningPathService";
 import { COLORS, FONTS } from "../Constants/theme";
+import toast from "react-hot-toast";
 
 
 const ACCENT = "#6EE7B7";
@@ -30,13 +32,12 @@ const MONO = "'DM Mono', monospace";
 export default function Home() {
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [paths, setPaths] = useState([]);
-
   useEffect(() => {
     getFeaturedProjects().then(setFeaturedProjects);
     getPublishedPaths().then(setPaths);
   }, []);
+  
   return (
-    
     <div className="min-h-screen" style={{ background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @keyframes particleFloat {
@@ -71,7 +72,7 @@ export default function Home() {
           }} />
 
           {/* Moving particles */}
-          <Particles />
+          {/* <Particles /> */}
 
 
         

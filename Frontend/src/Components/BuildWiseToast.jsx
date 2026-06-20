@@ -43,10 +43,14 @@ function ToastCard({ t, variant, message, meta }) {
         padding: "13px 16px",
         borderRadius: 14,
         background: "#171717",
-        border: `1px solid ${isSuccess ? "rgba(110,231,183,0.18)" : "rgba(255,255,255,0.08)"}`,
+        border: `1px solid ${isSuccess
+          ? "rgba(110,231,183,0.18)"
+          : "rgba(239,68,68,0.18)"
+          }`,
+
         boxShadow: isSuccess
           ? "0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(110,231,183,0.05), 0 0 24px rgba(110,231,183,0.06)"
-          : "0 20px 50px rgba(0,0,0,0.5)",
+          : "0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.05), 0 0 24px rgba(239,68,68,0.06)",
         cursor: "pointer",
         overflow: "hidden",
         fontFamily: '"DM Sans", sans-serif',
@@ -73,10 +77,12 @@ function ToastCard({ t, variant, message, meta }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: isSuccess ? "#6EE7B7" : "rgba(255,255,255,0.1)",
+          background: isSuccess
+            ? "#6EE7B7"
+            : "#EF4444",
           boxShadow: isSuccess
             ? "0 0 0 5px rgba(110,231,183,0.1), 0 0 18px rgba(110,231,183,0.45)"
-            : "none",
+            : "0 0 0 5px rgba(239,68,68,0.1), 0 0 18px rgba(239,68,68,0.45)",
         }}
       >
         {ICONS[variant]}
@@ -115,7 +121,7 @@ function ToastCard({ t, variant, message, meta }) {
 export const bwToast = {
   success: (message, opts = {}) =>
     toast.custom((t) => <ToastCard t={t} variant="success" message={message} meta={opts.meta} />, {
-      duration: 3200,
+      duration: 2200,
       ...opts,
     }),
   error: (message, opts = {}) =>
@@ -127,7 +133,7 @@ export const bwToast = {
 
 export function BuildWiseToaster() {
   return (
-    <Toaster position="top-right" gutter={10} containerStyle={{ top: 24, right: 24 }}>
+    <Toaster position="top-right" gutter={10} containerStyle={{ top: 75, right: 24 }}>
       {(t) => resolveValue(t.message, t)}
     </Toaster>
   );

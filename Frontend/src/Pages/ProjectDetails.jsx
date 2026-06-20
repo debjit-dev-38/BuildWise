@@ -426,10 +426,17 @@ function LoadingState() {
   );
 }
 
+
+const GithubIcon = ({ size = 14 }) => (
+  < svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" >
+    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+  </svg>
+
+);
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function ProjectDetails() {
   const { slug } = useParams();
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   // Data state — everything comes from the service layer
   const [project, setProject] = useState(null);   // card-level meta (from projects.js)
   const [details, setDetails] = useState(null);   // full detail object (from projectDetails.js)
@@ -483,9 +490,9 @@ export default function ProjectDetails() {
 
   // Merge card-level data (project) with detail data so we always have a title
   // even when the detail is for a standalone showcase (projectId: null)
-  const title =  project?.name ?? "";
+  const title = project?.name ?? "";
   const summary = project?.summary ?? "";
-  const cover = details?.cover ??project.cover.url??  "";
+  const cover = details?.cover ?? project.cover.url ?? "";
   const status = project.status ?? "Live";
 
   return (
@@ -516,10 +523,10 @@ export default function ProjectDetails() {
               <div style={{ position: "absolute", inset: 0, borderRadius: 28, boxShadow: "inset 0 0 0 1px rgba(110,231,183,0.12)" }} />
 
               {/* Play button */}
-              <div  onClick={()=>navigate(`/projectdetails/${slug}/learningpage`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div onClick={() => navigate(`/projectdetails/${slug}/learningpage`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
                   style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white"/>
+                  <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white" />
                 </motion.div>
               </div>
 
@@ -623,7 +630,7 @@ export default function ProjectDetails() {
               <ScrollReveal>
                 <div>
                   <SectionLabel>Gallery</SectionLabel>
-                  <Gallery images={details?.gallery?? project.gallery?? []} />
+                  <Gallery images={details?.gallery ?? project.gallery ?? []} />
                 </div>
               </ScrollReveal>
 
@@ -724,7 +731,7 @@ export default function ProjectDetails() {
                     <ExternalLink size={13} /> Live Demo
                   </motion.a>
                   {[
-                    { label: "GitHub Repository", icon: ExternalLink },
+                    {label: "GitHub Repository", icon: GithubIcon},
                     { label: "Case Study PDF", icon: FileText },
                   ].map(({ label, icon: Icon }) => (
                     <motion.a key={label} href="#" whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
@@ -832,7 +839,7 @@ export default function ProjectDetails() {
 
           <div style={{ height: 32 }} />
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

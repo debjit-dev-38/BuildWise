@@ -399,6 +399,7 @@ export default function Login() {
     setError("");
     if (!email && !username) { setError("Please enter your username or email."); return; }
     if (!password) { setError("Please enter your password."); return; }
+
     setLoading(true);
     try {
       // TODO: await loginUser({ email, password });
