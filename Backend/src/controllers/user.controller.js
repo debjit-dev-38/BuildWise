@@ -28,7 +28,6 @@ const generateAccessAndRefreshTokens = async (userId) => {
         const user = await User.findById(userId)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
-
         user.refreshToken = refreshToken
         await user.save({ validateBeforeSave: false })   //withour await caused auto logging out sometimes
 
@@ -163,7 +162,8 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired")
         }
-
+        console.log("REFRESH CALLED");
+        console.log("TIME:", Math.floor(Date.now() / 1000));
         const options = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",

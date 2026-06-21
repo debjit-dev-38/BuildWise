@@ -2,6 +2,7 @@ import React from 'react'
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useInView } from "framer-motion";
+import Loader from './Loader';
 import {
   Hammer, ArrowRight, Play, Monitor, Server, Layers, Brain,
   Search, Map, Rocket, Clock, Check, X, Sparkles,
@@ -31,7 +32,7 @@ const G = {
 };
 
 const Navbar = () => {
-  const { user, setUser,loading } = useContext(UserContext)
+  const { user, setUser, loading } = useContext(UserContext)
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate()
@@ -43,7 +44,7 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  
+
 
   return (
     <motion.nav
@@ -100,31 +101,85 @@ const Navbar = () => {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-2">
 
-          {user ? (<div style={{ display: "flex", alignItems: "center", margin: 20, flexShrink: 0 }}>
-            <div
-              title={user.fullName}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: G.green,
-                color: G.bg,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {user.fullName?.charAt(0).toUpperCase()}
-            </div>
-          </div>) : (<div style={{ display: "flex", alignItems: "center", margin: 20, flexShrink: 0 }}>
-            <motion.button onClick={() => { navigate('/login') }} whileHover={{ y: -1, boxShadow: "0 6px 20px rgba(110,231,183,0.38)" }} whileTap={{ scale: 0.97 }}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 10, background: G.green, color: G.bg, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 3px 14px rgba(110,231,183,0.28)", transition: "box-shadow 0.3s" }}>
-              <Sparkles size={12} /> Login
-            </motion.button>
-          </div>)}
+
+          {
+            loading ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: 20,
+                  flexShrink: 0,
+                }}
+              >
+                <Loader size="sm" />
+              </div>
+            ) : user ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: 20,
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  title={user.fullName}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    background: G.green,
+                    color: G.bg,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {user.fullName?.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: 20,
+                  flexShrink: 0,
+                }}
+              >
+                <motion.button
+                  onClick={() => navigate("/login")}
+                  whileHover={{
+                    y: -1,
+                    boxShadow: "0 6px 20px rgba(110,231,183,0.38)",
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 16px",
+                    borderRadius: 10,
+                    background: G.green,
+                    color: G.bg,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    boxShadow: "0 3px 14px rgba(110,231,183,0.28)",
+                    transition: "box-shadow 0.3s",
+                  }}
+                >
+                  <Sparkles size={12} />
+                  Login
+                </motion.button>
+              </div>
+            )
+}
         </div>
 
         {/* Mobile hamburger */}

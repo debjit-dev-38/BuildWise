@@ -40,8 +40,6 @@ export default function Home() {
     getPublishedPaths().then(setPaths);
   }, []);
   
-  if(loading)
-    return <Loader/>
 
   return (
     <div className="min-h-screen" style={{ background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif" }}>

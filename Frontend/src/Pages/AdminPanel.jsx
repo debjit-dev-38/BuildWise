@@ -196,7 +196,9 @@ export default function AdminPanel() {
 
 
   if (loading) {
-    return <Loader text="Checking access..." />;
+    return <Loader size="lg"
+      text="Checking Access..."
+      fullScreen />;
   }
 
   if (user?.role !== "admin") {

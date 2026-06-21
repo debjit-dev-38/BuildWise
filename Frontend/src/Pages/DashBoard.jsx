@@ -53,7 +53,7 @@ export default function Dashboard() {
 
   const { stats, paths, projects, activity, achievements } = data;
   if (loading) {
-    return <Loader text="Authenticating..." />;
+    return <Loader  size="lg" text="Authenticating..." fullScreen />;
   }
   if (!user) {
     return (
