@@ -19,12 +19,10 @@ const enrollmentSchema = new Schema(
     status: {
       type: String,
       enum: [
-        "active",
-        "completed",
-        "paused",
-        "dropped",
+        "Completed",
+        "Enrolled",
       ],
-      default: "active",
+      default: "Enrolled",
     },
 
     completedModules: [

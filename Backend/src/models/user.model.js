@@ -3,6 +3,34 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 
+const userStatsSchema = new Schema({
+  dayStreak: {
+    value: { type: Number, default: 0 },
+    delta: { type: String, default: "" }
+  },
+
+  projectsShipped: {
+    value: { type: Number, default: 0 },
+    delta: { type: String, default: "" }
+  },
+
+  hoursLearned: {
+    value: { type: Number, default: 0 },
+    delta: { type: String, default: "" }
+  },
+
+  currentLevel: {
+    value: { type: Number, default: 1 },
+    delta: { type: String, default: "" }
+  },
+
+  xp: {
+    type: Number,
+    default: 0
+  }
+});
+
+
 const userSchema = new Schema(
   {
     // ======================
@@ -115,6 +143,8 @@ const userSchema = new Schema(
       type: Date,
       default: null,
     },
+
+    userStats: [userStatsSchema]
   },
   {
     timestamps: true,
@@ -128,7 +158,7 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
-    return 
+    return
   }
 
   this.password = await bcrypt.hash(this.password, 10);

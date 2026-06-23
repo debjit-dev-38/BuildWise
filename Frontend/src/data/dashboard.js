@@ -39,11 +39,11 @@ export const currentUser = {
 export const userStats = [
   {
     label: "Day Streak",
-    val: 12,
-    suffix: "🔥",
+    val: 12, //user fetched
+    suffix: "",
     icon: Flame,
     color: COLORS.amber,
-    delta: "+3 this week",
+    delta: "+3 this week",  //user fetched
   },
   {
     label: "Projects Shipped",

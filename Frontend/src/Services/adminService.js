@@ -49,7 +49,7 @@ export const getAdminProjects = async ({
     ...(search && { search }),
   };
 
-  const { data } = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`, { params });
+  const { data } = await api.get("/api/v1/users/get-adminProjects", { params });
   return data.data; // { projects, totalProjects, page, totalPages, hasNextPage }
 }
 

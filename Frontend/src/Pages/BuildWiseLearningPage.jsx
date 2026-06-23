@@ -1,24 +1,45 @@
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Shield, ChevronLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import Background from "../Components/Background";
 import Navbar from "../Components/Navbar";
 import { COLORS, FONTS, DIFFICULTY_COLORS, badgeBg } from "../Constants/theme";
 import { getProjectModules } from "../Services/projectService";
+import { useContext } from "react";
+import api from "../Services/api";
+import { UserContext } from "../Context/UserContext";
+
+// ── Google Fonts — matches ProjectDetails.jsx exactly ─────────────────────
+// Uses the same imperative injection strategy (document.createElement) so
+// fonts are requested at module-load time, not at render time.
+// Extended URL includes:
+//   • Instrument Serif italic variant (ital@0;1)
+//   • DM Sans optical-size axis (opsz,wght@9..40,...) + weights 300–700
+//   • DM Mono weight 400 and 500
+const _f = document.createElement("link");
+_f.rel = "stylesheet";
+_f.href =
+  "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap";
+document.head.appendChild(_f);
 
 // ─── Design tokens (scoped to this page) ──────────────────────────────────────
-const ACCENT  = COLORS.green;            // #6EE7B7
-const BG      = COLORS.bg;               // #0A0A0A
-const BORDER  = COLORS.border;           // rgba(255,255,255,0.07)
-const GLASS   = COLORS.card;             // rgba(255,255,255,0.02)
-const TEXT    = COLORS.text;             // #F0F0F0
+const ACCENT = COLORS.green;            // #6EE7B7
+const BG = COLORS.bg;               // #0A0A0A
+const BORDER = COLORS.border;           // rgba(255,255,255,0.07)
+const GLASS = COLORS.card;             // rgba(255,255,255,0.02)
+const TEXT = COLORS.text;             // #F0F0F0
 const TEXT_SEC = COLORS.muted;           // rgba(255,255,255,0.45)
-const SERIF   = FONTS.serif.fontFamily;  // 'Instrument Serif', serif
-const SANS    = FONTS.sans.fontFamily;   // 'DM Sans', sans-serif
+// Font-family strings — identical to S.serif / S.mono / S.page.fontFamily in ProjectDetails.jsx
+const SERIF = "'Instrument Serif', serif";   // matches S.serif.fontFamily
+const SANS = "'DM Sans', sans-serif";        // matches S.page.fontFamily
+const MONO = "'DM Mono', monospace";         // matches S.mono.fontFamily
 
 const css = {
   // ── layout ───────────────────────────────────────────────────────────
+  // fontFamily matches S.page in ProjectDetails.jsx exactly
   page: {
-    ...FONTS.sans,
+    fontFamily: SANS,
     background: BG,
     color: TEXT,
     minHeight: "100vh",
@@ -154,6 +175,379 @@ const css = {
   },
 };
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function BuildWiseLearningPage() {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const { user } = useContext(UserContext)
+  // Data state — everything comes from the backend service layer
+  const [project, setProject] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [activeId, setActiveId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const mainRef = useRef(null);
+
+  // ── Fetch project + modules on mount or slug change ────────────────────────
+  useEffect(() => {
+    if (!slug) {
+      setError("No project specified");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    getProjectModules(slug)
+      .then(({ project: proj, modules: mods, currentModuleId }) => {
+
+        setProject(proj);
+        setModules(mods);
+
+        if (currentModuleId) {
+          setActiveId(currentModuleId);
+        }
+        else {
+          const firstUnlocked = mods.find((m) => m.unlocked);
+
+          if (firstUnlocked) {
+            setActiveId(firstUnlocked.id);
+          }
+          else if (mods.length > 0) {
+            setActiveId(mods[0].id);
+          }
+        }
+
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load learning materials:", err);
+        setError("Failed to load learning materials. Please try again.");
+        setLoading(false);
+      });
+  }, [slug]);
+
+  // Derived state
+  const progress = deriveProgress(modules);
+  const activeModule = modules.find((m) => m.id === activeId);
+  const activeIndex = modules.findIndex((m) => m.id === activeId);
+  const prevModule = activeIndex > 0 ? modules[activeIndex - 1] : null;
+  const nextModule = activeIndex < modules.length - 1 ? modules[activeIndex + 1] : null;
+  const allDone = progress.completedModules === progress.totalModules;
+
+
+  const moduleStatus = (m) => {
+    if (m.completed) return "Completed";
+    if (m.id === activeId && m.unlocked) return "In Progress";
+    return "Not Started";
+  };
+
+  const timeRemaining = modules
+    .filter((m) => !m.completed)
+    .reduce((acc, m) => {
+      const raw = m.duration || "";
+      const hrs = raw.includes("hour") ? parseFloat(raw) : raw.includes("hr") ? parseFloat(raw) : raw.includes("min") ? parseFloat(raw) / 60 : 0;
+      return acc + hrs;
+    }, 0);
+
+  async function handleMarkComplete() {
+
+    try {
+      const response = await api.post(
+        "/api/v1/enroll/completed-modules",
+        {
+          projectId: project.id,
+          moduleId: activeModule.id
+        }
+      );
+      setShowModal(false);
+      setModules((prev) => {
+        const idx = prev.findIndex((m) => m.id === activeId);
+        return prev.map((m, i) => {
+          if (m.id === activeId) return { ...m, completed: true };
+          if (i === idx + 1) return { ...m, unlocked: true };
+          return m;
+        });
+      });
+      if (nextModule) setActiveId(nextModule.id);
+    }
+    catch (err) {
+      console.error(err)
+    }
+  }
+
+  function selectModule(m) {
+    if (!m.unlocked && !m.completed) return;
+    setActiveId(m.id);
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ── Guard: show loading or error state ────────────────────────────────────
+  if (loading) return <LoadingState />;
+  if (error || !project) return <ErrorState message={error || "Project not found"} onBack={() => navigate("/projects")} />;
+  if (modules.length === 0) return <ErrorState message="No learning modules available for this project" onBack={() => navigate("/projects")} />;
+
+
+  return (
+    user ?
+      <div style={css.page}>
+        {/* ── Utility overrides (fonts loaded imperatively above, matching ProjectDetails.jsx) ── */}
+        <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .bw-module-hover:hover { background: rgba(255,255,255,0.035) !important; }
+        .bw-btn-secondary:hover { border-color: rgba(255,255,255,0.18) !important; color: #fff !important; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 1024px) { .bw-sidebar-right { display: none !important; } }
+        @media (max-width: 768px)  { .bw-sidebar-left  { display: none !important; } .bw-main { padding: 20px !important; } }
+      `}</style>
+
+        {/* Imported background — radial blobs + grid */}
+        <Background />
+
+        {/* Navbar sits outside appShell so position:fixed resolves against the viewport */}
+        <Navbar />
+
+        <div style={css.appShell}>
+          <div style={css.body}>
+            {/* ── LEFT SIDEBAR ── */}
+            <aside className="bw-sidebar-left" style={css.sidebarLeft}>
+              <div style={css.sidebarLabel}>Course Modules</div>
+              {modules.map((m, i) => (
+                <div
+                  key={m.id}
+                  className={m.unlocked ? "bw-module-hover" : ""}
+                  style={css.moduleItem(m.id === activeId, m.completed, m.unlocked)}
+                  onClick={() => selectModule(m)}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.45, minWidth: 20 }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 12 }}>{m.title}</span>
+                  {m.completed && <span style={{ color: ACCENT, fontSize: 11 }}>✓</span>}
+                  {!m.unlocked && <span style={{ fontSize: 11 }}>🔒</span>}
+                </div>
+              ))}
+
+              <div style={{ height: 16 }} />
+              <div style={css.sidebarLabel}>Completion</div>
+              <div style={{ padding: "8px 16px" }}>
+                <div style={{ background: COLORS.faintSolid, borderRadius: 20, height: 4, marginBottom: 6 }}>
+                  <div style={{ background: ACCENT, height: 4, borderRadius: 20, width: `${progress.percentage}%`, transition: "width 0.5s ease" }} />
+                </div>
+                <div style={{ fontSize: 11, color: TEXT_SEC }}>{progress.completedModules} of {progress.totalModules} modules</div>
+              </div>
+            </aside>
+
+            {/* ── MAIN CONTENT ── */}
+            <main className="bw-main" ref={mainRef} style={css.main}>
+
+              {/* PROJECT OVERVIEW */}
+              <section style={{ marginBottom: 36 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase",
+                    color: ACCENT, background: "rgba(110,231,183,0.07)",
+                    border: "1px solid rgba(110,231,183,0.18)", padding: "3px 10px", borderRadius: 20,
+                  }}>
+                    {project.category}
+                  </span>
+                  <DifficultyBadge level={project.difficulty} />
+                </div>
+
+                <h1 style={{
+                  fontFamily: SERIF, fontSize: 36, lineHeight: 1.15, marginBottom: 14,
+                  background: `linear-gradient(135deg, #fff 55%, rgba(110,231,183,0.75))`,
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                }}>
+                  {project.title}
+                </h1>
+
+                <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
+                  {[
+                    ["⏱", project.duration],
+                    ["👥", `${(project.learners / 1000).toFixed(1)}k learners`],
+                    ["★", `${project.rating} rating`],
+                  ].map(([icon, val]) => (
+                    <div key={val} style={{ fontSize: 13, color: TEXT_SEC, display: "flex", alignItems: "center", gap: 5 }}>
+                      <span>{icon}</span><span>{val}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {project.techStack.map((t) => <span key={t} style={css.tag}>{t}</span>)}
+                </div>
+              </section>
+
+              {/* CELEBRATION BANNER — shown above module view when all done */}
+              {allDone && (
+                <div style={{ marginBottom: 32 }}>
+                  <CelebrationCard project={project} onDashboard={() => navigate("/dashboard")} onNext={() => navigate("/projects")} />
+                </div>
+              )}
+
+              {/* MODULE VIEW — always rendered so completed modules stay browsable */}
+              {activeModule ? (
+                <>
+                  {/* MODULE HEADER */}
+                  <section style={{ ...css.glassCard, marginBottom: 24 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: ACCENT, marginBottom: 6 }}>
+                          Module {String(activeIndex + 1).padStart(2, "0")}
+                        </div>
+                        <h2 style={{ fontFamily: SERIF, fontSize: 26, marginBottom: 8, color: TEXT }}>
+                          {activeModule.title}
+                        </h2>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                          <StatusBadge status={moduleStatus(activeModule)} />
+                          <span style={{ fontSize: 12, color: TEXT_SEC, display: "flex", alignItems: "center", gap: 4 }}>
+                            ⏱ {activeModule.duration}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* OVERVIEW */}
+                  <section style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: ACCENT, marginBottom: 10 }}>
+                      Overview
+                    </div>
+                    <p style={{ fontSize: 15, lineHeight: 1.8, color: TEXT_SEC }}>{activeModule.description}</p>
+                  </section>
+
+                  {/* PDF VIEWER */}
+                  <section style={{ marginBottom: 28 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: ACCENT, marginBottom: 12 }}>
+                      Learning Material
+                    </div>
+                    <PDFViewer pdfUrl={activeModule.pdfUrl} />
+                  </section>
+
+                  {/* ACTIONS */}
+                  <section style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", paddingBottom: 60 }}>
+                    {!activeModule.completed && (
+                      <button style={css.btnPrimary} onClick={() => setShowModal(true)}>
+                        Mark as Completed ✓
+                      </button>
+                    )}
+                    {activeModule.completed && (
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        background: "rgba(110,231,183,0.07)",
+                        border: "1px solid rgba(110,231,183,0.18)",
+                        borderRadius: 8, padding: "10px 18px",
+                        fontSize: 13, color: ACCENT, fontWeight: 600,
+                      }}>
+                        ✓ Module Completed
+                      </div>
+                    )}
+                    <div style={{ flex: 1 }} />
+                    {prevModule ? (
+                      <button className="bw-btn-secondary" style={css.btnSecondary} onClick={() => selectModule(prevModule)}>
+                        ← Previous
+                      </button>
+                    ) : (
+                      <button style={css.btnDisabled} disabled>← Previous</button>
+                    )}
+                    {nextModule && nextModule.unlocked ? (
+                      <button className="bw-btn-secondary" style={css.btnSecondary} onClick={() => selectModule(nextModule)}>
+                        Next →
+                      </button>
+                    ) : (
+                      <button style={css.btnDisabled} disabled title={nextModule ? "Complete this module to unlock" : "Last module"}>
+                        Next {nextModule ? "🔒" : ""}
+                      </button>
+                    )}
+                  </section>
+                </>
+              ) : null /* activeModule */}
+            </main>
+
+            {/* ── RIGHT SIDEBAR ── */}
+            <aside className="bw-sidebar-right" style={css.sidebarRight}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 12 }}>
+                Your Progress
+              </div>
+
+              <div style={{ ...css.glassCard, textAlign: "center", marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+                  <ProgressRing pct={progress.percentage} />
+                </div>
+                <div style={{ fontSize: 12, color: TEXT_SEC }}>
+                  {progress.completedModules} of {progress.totalModules} modules
+                </div>
+              </div>
+
+              <div style={{ ...css.glassCard, marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 6 }}>
+                  Current Module
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: TEXT, marginBottom: 3 }}>{activeModule?.title}</div>
+                <div style={{ fontSize: 11, color: TEXT_SEC }}>{activeModule?.duration}</div>
+              </div>
+
+              <div style={{ ...css.glassCard, marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 6 }}>
+                  Time Remaining
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: TEXT }}>{timeRemaining.toFixed(1)}</div>
+                <div style={{ fontSize: 11, color: TEXT_SEC }}>hours estimated</div>
+              </div>
+
+              <div style={{ ...css.glassCard, marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 8 }}>
+                  Modules Completed
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: ACCENT, marginBottom: 8 }}>
+                  {progress.completedModules}{" "}
+                  <span style={{ fontSize: 13, color: TEXT_SEC, fontWeight: 400 }}>/ {progress.totalModules}</span>
+                </div>
+                <div style={{ background: COLORS.faintSolid, borderRadius: 20, height: 4 }}>
+                  <div style={{ background: ACCENT, height: 4, borderRadius: 20, width: `${progress.percentage}%`, transition: "width 0.5s ease" }} />
+                </div>
+              </div>
+
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 8 }}>
+                Stack
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {project.techStack.map((t) => <span key={t} style={css.tag}>{t}</span>)}
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        {/* COMPLETION MODAL */}
+        {showModal && <Modal onCancel={() => setShowModal(false)} onConfirm={handleMarkComplete} />}
+      </div>
+      :
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-sm mx-auto p-8">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
+            <Shield size={20} className="text-rose-400/70" />
+          </div>
+          <h1 className="text-xl font-semibold text-white mb-3">Signin to Continue</h1>
+          <p className="text-white/40 text-sm mb-6 leading-relaxed">
+            Sign in to access your dashboard, projects, learning paths, achievements and progress.
+          </p>
+          <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
+            <ChevronLeft size={14} strokeWidth={2.5} /> Login
+          </a>
+        </motion.div>
+      </div>
+  );
+}
+
+
 // ─── Derived progress ───────────────────────────────────────────────────────────
 function deriveProgress(modules) {
   const completed = modules.filter((m) => m.completed).length;
@@ -181,9 +575,9 @@ function ProgressRing({ pct }) {
 
 function StatusBadge({ status }) {
   const map = {
-    Completed:     { bg: `rgba(110,231,183,0.10)`, border: `rgba(110,231,183,0.25)`, color: COLORS.green },
-    "In Progress": { bg: `rgba(252,211,77,0.10)`,  border: `rgba(252,211,77,0.25)`,  color: COLORS.amber },
-    "Not Started": { bg: GLASS,                     border: BORDER,                   color: TEXT_SEC },
+    Completed: { bg: `rgba(110,231,183,0.10)`, border: `rgba(110,231,183,0.25)`, color: COLORS.green },
+    "In Progress": { bg: `rgba(252,211,77,0.10)`, border: `rgba(252,211,77,0.25)`, color: COLORS.amber },
+    "Not Started": { bg: GLASS, border: BORDER, color: TEXT_SEC },
   };
   const s = map[status] || map["Not Started"];
   return (
@@ -274,11 +668,11 @@ function PDFViewer({ pdfUrl }) {
     return (
       <div style={{ ...css.glassCard, minHeight: 360, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, borderStyle: "dashed" }}>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={TEXT_SEC} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
         </svg>
         <p style={{ color: TEXT_SEC, fontSize: 14 }}>PDF material hasn't been attached to this module yet.</p>
         <p style={{ color: COLORS.faint, fontSize: 12 }}>The instructor will upload it shortly.</p>
@@ -327,331 +721,3 @@ function ErrorState({ message, onBack }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function BuildWiseLearningPage() {
-  const { slug } = useParams();
-  const navigate = useNavigate();
-
-  // Data state — everything comes from the backend service layer
-  const [project, setProject]   = useState(null);
-  const [modules, setModules]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
-
-  const [activeId, setActiveId]   = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const mainRef = useRef(null);
-
-  // ── Fetch project + modules on mount or slug change ────────────────────────
-  useEffect(() => {
-    if (!slug) {
-      setError("No project specified");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    getProjectModules(slug)
-      .then(({ project: proj, modules: mods }) => {
-        setProject(proj);
-        setModules(mods);
-        // Set active to first unlocked module
-        const firstUnlocked = mods.find((m) => m.unlocked);
-        if (firstUnlocked) setActiveId(firstUnlocked.id);
-        else if (mods.length > 0) setActiveId(mods[0].id);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load learning materials:", err);
-        setError("Failed to load learning materials. Please try again.");
-        setLoading(false);
-      });
-  }, [slug]);
-
-  // Derived state
-  const progress    = deriveProgress(modules);
-  const activeModule = modules.find((m) => m.id === activeId);
-  const activeIndex  = modules.findIndex((m) => m.id === activeId);
-  const prevModule   = activeIndex > 0 ? modules[activeIndex - 1] : null;
-  const nextModule   = activeIndex < modules.length - 1 ? modules[activeIndex + 1] : null;
-  const allDone      = progress.completedModules === progress.totalModules;
-
-  const moduleStatus = (m) => {
-    if (m.completed) return "Completed";
-    if (m.id === activeId && m.unlocked) return "In Progress";
-    return "Not Started";
-  };
-
-  const timeRemaining = modules
-    .filter((m) => !m.completed)
-    .reduce((acc, m) => {
-      const raw = m.duration || "";
-      const hrs = raw.includes("hour") ? parseFloat(raw) : raw.includes("hr") ? parseFloat(raw) : raw.includes("min") ? parseFloat(raw) / 60 : 0;
-      return acc + hrs;
-    }, 0);
-
-  function handleMarkComplete() {
-    setShowModal(false);
-    setModules((prev) => {
-      const idx = prev.findIndex((m) => m.id === activeId);
-      return prev.map((m, i) => {
-        if (m.id === activeId) return { ...m, completed: true };
-        if (i === idx + 1)     return { ...m, unlocked: true };
-        return m;
-      });
-    });
-    if (nextModule) setActiveId(nextModule.id);
-  }
-
-  function selectModule(m) {
-    if (!m.unlocked && !m.completed) return;
-    setActiveId(m.id);
-    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  // ── Guard: show loading or error state ────────────────────────────────────
-  if (loading) return <LoadingState />;
-  if (error || !project) return <ErrorState message={error || "Project not found"} onBack={() => navigate("/projects")} />;
-  if (modules.length === 0) return <ErrorState message="No learning modules available for this project" onBack={() => navigate("/projects")} />;
-
-  return (
-    <div style={css.page}>
-      {/* ── Injected fonts + utility overrides ── */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-        .bw-module-hover:hover { background: rgba(255,255,255,0.035) !important; }
-        .bw-btn-secondary:hover { border-color: rgba(255,255,255,0.18) !important; color: #fff !important; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @media (max-width: 1024px) { .bw-sidebar-right { display: none !important; } }
-        @media (max-width: 768px)  { .bw-sidebar-left  { display: none !important; } .bw-main { padding: 20px !important; } }
-      `}</style>
-
-      {/* Imported background — radial blobs + grid */}
-      <Background />
-
-      {/* Navbar sits outside appShell so position:fixed resolves against the viewport */}
-      <Navbar />
-
-      <div style={css.appShell}>
-        <div style={css.body}>
-          {/* ── LEFT SIDEBAR ── */}
-          <aside className="bw-sidebar-left" style={css.sidebarLeft}>
-            <div style={css.sidebarLabel}>Course Modules</div>
-            {modules.map((m, i) => (
-              <div
-                key={m.id}
-                className={m.unlocked ? "bw-module-hover" : ""}
-                style={css.moduleItem(m.id === activeId, m.completed, m.unlocked)}
-                onClick={() => selectModule(m)}
-              >
-                <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.45, minWidth: 20 }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span style={{ flex: 1, fontSize: 12 }}>{m.title}</span>
-                {m.completed  && <span style={{ color: ACCENT, fontSize: 11 }}>✓</span>}
-                {!m.unlocked  && <span style={{ fontSize: 11 }}>🔒</span>}
-              </div>
-            ))}
-
-            <div style={{ height: 16 }} />
-            <div style={css.sidebarLabel}>Completion</div>
-            <div style={{ padding: "8px 16px" }}>
-              <div style={{ background: COLORS.faintSolid, borderRadius: 20, height: 4, marginBottom: 6 }}>
-                <div style={{ background: ACCENT, height: 4, borderRadius: 20, width: `${progress.percentage}%`, transition: "width 0.5s ease" }} />
-              </div>
-              <div style={{ fontSize: 11, color: TEXT_SEC }}>{progress.completedModules} of {progress.totalModules} modules</div>
-            </div>
-          </aside>
-
-          {/* ── MAIN CONTENT ── */}
-          <main className="bw-main" ref={mainRef} style={css.main}>
-
-            {/* PROJECT OVERVIEW */}
-            <section style={{ marginBottom: 36 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase",
-                  color: ACCENT, background: "rgba(110,231,183,0.07)",
-                  border: "1px solid rgba(110,231,183,0.18)", padding: "3px 10px", borderRadius: 20,
-                }}>
-                  {project.category}
-                </span>
-                <DifficultyBadge level={project.difficulty} />
-              </div>
-
-              <h1 style={{
-                fontFamily: SERIF, fontSize: 36, lineHeight: 1.15, marginBottom: 14,
-                background: `linear-gradient(135deg, #fff 55%, rgba(110,231,183,0.75))`,
-                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              }}>
-                {project.title}
-              </h1>
-
-              <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
-                {[
-                  ["⏱", project.duration],
-                  ["👥", `${(project.learners / 1000).toFixed(1)}k learners`],
-                  ["★", `${project.rating} rating`],
-                ].map(([icon, val]) => (
-                  <div key={val} style={{ fontSize: 13, color: TEXT_SEC, display: "flex", alignItems: "center", gap: 5 }}>
-                    <span>{icon}</span><span>{val}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {project.techStack.map((t) => <span key={t} style={css.tag}>{t}</span>)}
-              </div>
-            </section>
-
-            {/* CELEBRATION BANNER — shown above module view when all done */}
-            {allDone && (
-              <div style={{ marginBottom: 32 }}>
-                <CelebrationCard project={project} onDashboard={() => navigate("/dashboard")} onNext={() => navigate("/projects")} />
-              </div>
-            )}
-
-            {/* MODULE VIEW — always rendered so completed modules stay browsable */}
-            {activeModule ? (
-              <>
-                {/* MODULE HEADER */}
-                <section style={{ ...css.glassCard, marginBottom: 24 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: ACCENT, marginBottom: 6 }}>
-                        Module {String(activeIndex + 1).padStart(2, "0")}
-                      </div>
-                      <h2 style={{ fontFamily: SERIF, fontSize: 26, marginBottom: 8, color: TEXT }}>
-                        {activeModule.title}
-                      </h2>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        <StatusBadge status={moduleStatus(activeModule)} />
-                        <span style={{ fontSize: 12, color: TEXT_SEC, display: "flex", alignItems: "center", gap: 4 }}>
-                          ⏱ {activeModule.duration}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* OVERVIEW */}
-                <section style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: ACCENT, marginBottom: 10 }}>
-                    Overview
-                  </div>
-                  <p style={{ fontSize: 15, lineHeight: 1.8, color: TEXT_SEC }}>{activeModule.description}</p>
-                </section>
-
-                {/* PDF VIEWER */}
-                <section style={{ marginBottom: 28 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: ACCENT, marginBottom: 12 }}>
-                    Learning Material
-                  </div>
-                  <PDFViewer pdfUrl={activeModule.pdfUrl} />
-                </section>
-
-                {/* ACTIONS */}
-                <section style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", paddingBottom: 60 }}>
-                  {!activeModule.completed && (
-                    <button style={css.btnPrimary} onClick={() => setShowModal(true)}>
-                      Mark as Completed ✓
-                    </button>
-                  )}
-                  {activeModule.completed && (
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      background: "rgba(110,231,183,0.07)",
-                      border: "1px solid rgba(110,231,183,0.18)",
-                      borderRadius: 8, padding: "10px 18px",
-                      fontSize: 13, color: ACCENT, fontWeight: 600,
-                    }}>
-                      ✓ Module Completed
-                    </div>
-                  )}
-                  <div style={{ flex: 1 }} />
-                  {prevModule ? (
-                    <button className="bw-btn-secondary" style={css.btnSecondary} onClick={() => selectModule(prevModule)}>
-                      ← Previous
-                    </button>
-                  ) : (
-                    <button style={css.btnDisabled} disabled>← Previous</button>
-                  )}
-                  {nextModule && nextModule.unlocked ? (
-                    <button className="bw-btn-secondary" style={css.btnSecondary} onClick={() => selectModule(nextModule)}>
-                      Next →
-                    </button>
-                  ) : (
-                    <button style={css.btnDisabled} disabled title={nextModule ? "Complete this module to unlock" : "Last module"}>
-                      Next {nextModule ? "🔒" : ""}
-                    </button>
-                  )}
-                </section>
-              </>
-            ) : null /* activeModule */}
-          </main>
-
-          {/* ── RIGHT SIDEBAR ── */}
-          <aside className="bw-sidebar-right" style={css.sidebarRight}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 12 }}>
-              Your Progress
-            </div>
-
-            <div style={{ ...css.glassCard, textAlign: "center", marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
-                <ProgressRing pct={progress.percentage} />
-              </div>
-              <div style={{ fontSize: 12, color: TEXT_SEC }}>
-                {progress.completedModules} of {progress.totalModules} modules
-              </div>
-            </div>
-
-            <div style={{ ...css.glassCard, marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 6 }}>
-                Current Module
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: TEXT, marginBottom: 3 }}>{activeModule?.title}</div>
-              <div style={{ fontSize: 11, color: TEXT_SEC }}>{activeModule?.duration}</div>
-            </div>
-
-            <div style={{ ...css.glassCard, marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 6 }}>
-                Time Remaining
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: TEXT }}>{timeRemaining.toFixed(1)}</div>
-              <div style={{ fontSize: 11, color: TEXT_SEC }}>hours estimated</div>
-            </div>
-
-            <div style={{ ...css.glassCard, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 8 }}>
-                Modules Completed
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: ACCENT, marginBottom: 8 }}>
-                {progress.completedModules}{" "}
-                <span style={{ fontSize: 13, color: TEXT_SEC, fontWeight: 400 }}>/ {progress.totalModules}</span>
-              </div>
-              <div style={{ background: COLORS.faintSolid, borderRadius: 20, height: 4 }}>
-                <div style={{ background: ACCENT, height: 4, borderRadius: 20, width: `${progress.percentage}%`, transition: "width 0.5s ease" }} />
-              </div>
-            </div>
-
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: TEXT_SEC, marginBottom: 8 }}>
-              Stack
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {project.techStack.map((t) => <span key={t} style={css.tag}>{t}</span>)}
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      {/* COMPLETION MODAL */}
-      {showModal && <Modal onCancel={() => setShowModal(false)} onConfirm={handleMarkComplete} />}
-    </div>
-  );
-}

@@ -12,9 +12,6 @@ import { achievements } from "../data/achievements.js";
 // Will map to: GET /api/me/*
 // ─────────────────────────────────────────────
 
-export const getCurrentUser = async () => {
-  return currentUser;
-};
 
 export const getUserStats = async () => {
   return userStats;
@@ -38,14 +35,13 @@ export const getUserAchievements = async () => {
 };
 
 export const getDashboardSummary = async () => {
-  const [user, stats, paths, projects, activity, userAchievements] =
+  const [stats, paths, projects, activity, userAchievements] =
     await Promise.all([
-      getCurrentUser(),
       getUserStats(),
       getUserPathProgress(),
       getUserProjects(),
       getRecentActivity(),
       getUserAchievements(),
     ]);
-  return { user, stats, paths, projects, activity, achievements: userAchievements };
+  return { stats, paths, projects, activity, achievements: userAchievements };
 };

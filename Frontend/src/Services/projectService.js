@@ -1,6 +1,7 @@
 import { projects } from "../data/projects.js";
 import { projectDetails } from "../data/projectDetails.js";
 import { matchDurationFilter } from "../data/filters.js";
+import api from "./api.js";
 import axios from "axios";
 
 // ─────────────────────────────────────────────
@@ -18,7 +19,7 @@ import axios from "axios";
 
 
 
-export const getProjects= async({
+export const getProjects = async ({
   page = 1,
   limit = 9,
   category,
@@ -27,7 +28,7 @@ export const getProjects= async({
   tech = [],
   sort,
   search,
-} = {})=>{
+} = {}) => {
   const params = {
     page,
     limit,
@@ -61,12 +62,33 @@ export const getProjectBySlug = async (slug) => {
  * @param {string} slug - the project slug
  * @returns {Object} { project: {...}, modules: [...] }
  */
+
+
 export const getProjectModules = async (slug) => {
-  const res = await axios.get(
+  // Fetch project
+  const projectRes = await axios.get(
     `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${slug}`
   );
 
-  const projectData = res.data.data;
+  const projectData = projectRes.data.data;
+
+  // Fetch enrollment
+  const enrollmentRes = await api.get(
+    `/api/v1/enroll/get-status/${projectData._id}`
+  );
+
+  const enrollment = enrollmentRes.data.data;
+
+  const completedSet = new Set(
+    (enrollment?.completedModules || []).map((id) => id.toString())
+  );
+
+  const currentModuleId =
+    enrollment?.currentModule?.toString() || null;
+
+  const currentIndex = projectData.modules.findIndex(
+    (m) => m._id.toString() === currentModuleId
+  );
 
   // Extract project info
   const project = {
@@ -75,26 +97,34 @@ export const getProjectModules = async (slug) => {
     slug: projectData.slug,
     difficulty: projectData.difficulty,
     duration: projectData.duration,
-    learners: projectData.metrics?.[0]?.num ?? 0, // learners count from metrics
-    rating: projectData.metrics?.[1]?.num ?? 0,   // rating from metrics
+    learners: projectData.metrics?.[0]?.num ?? 0,
+    rating: projectData.metrics?.[1]?.num ?? 0,
     category: projectData.category,
-    techStack: projectData.stack?.map(s => s.name) ?? [],
+    techStack: projectData.stack?.map((s) => s.name) ?? [],
   };
 
-  // Transform modules from backend format
   const modules = (projectData.modules ?? []).map((m, idx) => ({
-    id: m._id?.toString?.() ?? `m${idx}`,
+    id: m._id.toString(),
     order: m.order ?? idx + 1,
     title: m.phase,
     description: m.desc,
     duration: m.duration,
     pdfUrl: m.pdfUrl || null,
     pdfPublicId: m.pdfPublicId || "",
-    completed: false,
-    unlocked: idx === 0, // only first module unlocked initially
+
+    completed: completedSet.has(m._id.toString()),
+
+    unlocked:
+      currentIndex === -1
+        ? idx === 0
+        : idx <= currentIndex,
   }));
 
-  return { project, modules };
+  return {
+    project,
+    modules,
+    currentModuleId,
+  };
 };
 
 export const getFeaturedProjects = async () => {

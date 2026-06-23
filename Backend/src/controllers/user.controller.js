@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Project } from "../models/projects.model.js";
 import validator from "validator";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
@@ -120,6 +121,92 @@ const loginUser = asyncHandler(async (req, res) => {
 
 })
 
+const getAdminProject = asyncHandler(async (req, res) => {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 9, 1);
+
+    const {
+        category,
+        difficulty,
+        duration,
+        tech,        // comma-separated string, e.g. "react,node"
+        sort,
+        search,
+        featured,
+    } = req.query;
+
+    // ── Build the Mongo filter object ──────────────────────────────
+    const filter = {};
+
+    if (category && category !== "all") {
+        filter.category = category;
+    }
+
+    if (difficulty && difficulty !== "All") {
+        filter.difficulty = difficulty;
+    }
+
+    if (duration && duration !== "Any") {
+        filter.duration = duration; // adjust if duration is a range field instead
+    }
+
+    if (tech) {
+        const techArray = tech.split(",").map(t => t.trim()).filter(Boolean);
+        if (techArray.length) {
+            filter.stack = { $in: techArray }; // matches if stack array contains any of these
+        }
+    }
+
+    if (featured === "true") {
+        filter.featured = true;
+    }
+
+    if (search) {
+    filter.name = {
+        $regex: search,
+        $options: "i"
+    };
+}
+
+    // ── Build the sort object ──────────────────────────────────────
+    const sortMap = {
+        popular: { "metrics.learners": -1 }, // adjust to your actual schema shape
+        newest: { createdAt: -1 },
+        rating: { "metrics.rating": -1 },
+        difficulty: { difficulty: 1 },
+    };
+    const sortQuery = sortMap[sort] || sortMap.popular;
+
+    // ── Run query + count in parallel ───────────────────────────────
+    const [projects, totalProjects] = await Promise.all([
+        
+        Project.find(filter)
+            .select(
+                "_id slug name description color category difficulty duration stack metrics image featured newest recommended status modules"
+            )
+            .sort(sortQuery)
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean(),
+
+        Project.countDocuments(filter),
+    ]);
+   
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                projects,
+                totalProjects,
+                page,
+                totalPages: Math.ceil(totalProjects / limit),
+                hasNextPage: page * limit < totalProjects,
+            },
+            "Projects fetched successfully"
+        )
+    );
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
@@ -162,8 +249,6 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired")
         }
-        console.log("REFRESH CALLED");
-        console.log("TIME:", Math.floor(Date.now() / 1000));
         const options = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -350,4 +435,4 @@ const updateUserRole = asyncHandler(async (req, res) => {
 });
 
 
-export { updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
+export {getAdminProject, updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }

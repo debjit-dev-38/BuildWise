@@ -87,12 +87,6 @@ const moduleSchema = new Schema(
       type: String,
       default: "",
     },
-
-    completed: {
-      type: Boolean,
-      default: false,
-    },
-
     pdfUrl: {
       type: String,
       default: "",
@@ -111,7 +105,7 @@ const moduleSchema = new Schema(
       default: "",
     },
 
-    locked: {
+    locked: {  //delete later
       type: Boolean,
       default: false,
     },

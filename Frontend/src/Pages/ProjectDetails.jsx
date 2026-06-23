@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
+import { bwToast } from "../Components/BuildWiseToast";
 import {
   ExternalLink, FileText, Mail,
   Clock, Users, Briefcase, Calendar, CheckCircle2,
@@ -19,6 +20,7 @@ import {
   getRelatedProjects,
 } from "../Services/projectService";
 import projectDetails from "../data/projectDetails";
+import api from "../Services/api";
 
 // ── Google Fonts ───────────────────────────────────────────────────────────
 const _f = document.createElement("link");
@@ -433,6 +435,9 @@ const GithubIcon = ({ size = 14 }) => (
   </svg>
 
 );
+
+
+
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function ProjectDetails() {
   const { slug } = useParams();
@@ -442,7 +447,27 @@ export default function ProjectDetails() {
   const [details, setDetails] = useState(null);   // full detail object (from projectDetails.js)
   const [related, setRelated] = useState([]);     // related project cards
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(null);
 
+
+  const handleEnroll = async () => {
+
+    if (status === "Live") {
+
+      try {
+          await api.post("/api/v1/enroll/enroll-user", {
+            projectId: project._id,
+          });
+          setStatus("Enrolled")
+          bwToast.success("Enrolled Successfully")
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    else {
+      navigate(`/projectdetails/${slug}/learningpage`);
+    }
+  }
   // Scroll-aware header
   const [headerScrolled, setHeaderScrolled] = useState(false);
 
@@ -462,6 +487,8 @@ export default function ProjectDetails() {
     });
   }, [slug]);
 
+
+
   // ── Scroll listener ──────────────────────────────────────────────────────
   useEffect(() => {
     const el = document.querySelector("[data-scroll-container]");
@@ -469,6 +496,24 @@ export default function ProjectDetails() {
     if (el) el.addEventListener("scroll", onScroll);
     return () => el?.removeEventListener("scroll", onScroll);
   }, []);
+
+
+
+  const getStatus = async () => {
+    const response = await api.get(
+      `/api/v1/enroll/get-status/${project._id}`
+    );
+
+    setStatus(response?.data?.data?.status?? "Live");
+
+  };
+
+  useEffect(() => {
+    if (!project?._id) return;
+
+    getStatus()
+
+  }, [project?._id]);
 
   // ── Style tokens (kept local — same as original) ─────────────────────────
   const S = {
@@ -493,7 +538,7 @@ export default function ProjectDetails() {
   const title = project?.name ?? "";
   const summary = project?.summary ?? "";
   const cover = details?.cover ?? project.cover.url ?? "";
-  const status = project.status ?? "Live";
+
 
   return (
     <div style={S.page} data-scroll-container>
@@ -523,11 +568,11 @@ export default function ProjectDetails() {
               <div style={{ position: "absolute", inset: 0, borderRadius: 28, boxShadow: "inset 0 0 0 1px rgba(110,231,183,0.12)" }} />
 
               {/* Play button */}
-              <div onClick={() => navigate(`/projectdetails/${slug}/learningpage`)} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
-                  style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <Play size={20} style={{ color: "#fff", marginLeft: 3 }} fill="white" />
-                </motion.div>
+              <div onClick={handleEnroll} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <motion.button whileHover={{ y: -1, boxShadow: "0 8px 28px rgba(110,231,183,0.35)" }} whileTap={{ scale: 0.97 }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px 18px", borderRadius: 12, background: "#6EE7B7", color: "#0A0A0A", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(110,231,183,0.25)" }}>
+                  {status === "Enrolled" ? <> Continue Learning <ChevronRight size={12} /> </> : <>Enroll Now <Play size={12} /></>}
+                </motion.button>
               </div>
 
               {/* Bottom content */}
@@ -731,7 +776,7 @@ export default function ProjectDetails() {
                     <ExternalLink size={13} /> Live Demo
                   </motion.a>
                   {[
-                    {label: "GitHub Repository", icon: GithubIcon},
+                    { label: "GitHub Repository", icon: GithubIcon },
                     { label: "Case Study PDF", icon: FileText },
                   ].map(({ label, icon: Icon }) => (
                     <motion.a key={label} href="#" whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
