@@ -14,6 +14,7 @@ import { achievements } from "../data/achievements.js";
 
 
 export const getUserStats = async () => {
+  
   return userStats;
 };
 
@@ -22,7 +23,7 @@ export const getUserPathProgress = async () => {
 };
 
 export const getUserProjects = async () => {
-  return userProjects;
+    return userProjects;
 };
 
 export const getRecentActivity = async () => {

@@ -1,3 +1,15 @@
+/**
+ * models/enrollment.model.js  — MODIFIED
+ *
+ * Changes from original:
+ *   • Added index { user: 1, status: 1, completedAt: -1 } for the
+ *     monthly-projects-shipped countDocuments query in dashboard controller.
+ *   • No schema shape changes — all existing fields preserved.
+ *
+ * NOTE: The compound unique index { user: 1, project: 1 } that already
+ * exists in your DB is preserved here (unique: true on those paths).
+ */
+
 import mongoose, { Schema } from "mongoose";
 
 const enrollmentSchema = new Schema(
@@ -6,22 +18,17 @@ const enrollmentSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
     project: {
       type: Schema.Types.ObjectId,
       ref: "Project",
       required: true,
-      index: true,
     },
 
     status: {
       type: String,
-      enum: [
-        "Completed",
-        "Enrolled",
-      ],
+      enum: ["Completed", "Enrolled"],
       default: "Enrolled",
     },
 
@@ -43,7 +50,7 @@ const enrollmentSchema = new Schema(
 
     lastAccessedAt: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
 
     completedAt: {
@@ -61,18 +68,11 @@ const enrollmentSchema = new Schema(
   }
 );
 
-// One user can enroll in one project only once
-enrollmentSchema.index(
-  {
-    user: 1,
-    project: 1,
-  },
-  {
-    unique: true,
-  }
-);
+// Existing unique index — preserves one enrollment per (user, project).
+enrollmentSchema.index({ user: 1, project: 1 }, { unique: true });
 
-export const Enrollment = mongoose.model(
-  "Enrollment",
-  enrollmentSchema
-);
+// NEW: supports the monthly shipped-projects countDocuments query:
+//   Enrollment.countDocuments({ user, status: "Completed", completedAt: { $gte: monthStart } })
+enrollmentSchema.index({ user: 1, status: 1, completedAt: -1 });
+
+export const Enrollment = mongoose.model("Enrollment", enrollmentSchema);

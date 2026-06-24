@@ -447,7 +447,7 @@ export default function ProjectDetails() {
   const [details, setDetails] = useState(null);   // full detail object (from projectDetails.js)
   const [related, setRelated] = useState([]);     // related project cards
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState("Live");
 
 
   const handleEnroll = async () => {
@@ -461,6 +461,7 @@ export default function ProjectDetails() {
           setStatus("Enrolled")
           bwToast.success("Enrolled Successfully")
       } catch (error) {
+        bwToast.error("Login to Enroll")
         console.error(error);
       }
     }
@@ -499,9 +500,9 @@ export default function ProjectDetails() {
 
 
 
-  const getStatus = async () => {
+  const getEnrollments = async () => {
     const response = await api.get(
-      `/api/v1/enroll/get-status/${project._id}`
+      `/api/v1/enroll/get-enrollments/${project._id}`
     );
 
     setStatus(response?.data?.data?.status?? "Live");
@@ -511,7 +512,7 @@ export default function ProjectDetails() {
   useEffect(() => {
     if (!project?._id) return;
 
-    getStatus()
+    getEnrollments()
 
   }, [project?._id]);
 
@@ -539,7 +540,7 @@ export default function ProjectDetails() {
   const summary = project?.summary ?? "";
   const cover = details?.cover ?? project.cover.url ?? "";
 
-
+  
   return (
     <div style={S.page} data-scroll-container>
       <Background />

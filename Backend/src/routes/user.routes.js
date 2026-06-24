@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {getAdminProject,updateUserRole,getUsers, changeCurrentPassword, getCurrentUser, loginUser, logoutUser, RefreshAccessToken, registerUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage } from "../controllers/user.controller.js";
+import {updateUserStats,getAdminProject,updateUserRole,getUsers, changeCurrentPassword, getCurrentUser, loginUser, logoutUser, RefreshAccessToken, registerUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { verifyAdmin } from "../middlewares/verifyAdmin.middleware.js";
@@ -32,6 +32,9 @@ router.route("/update-account").patch(verifyJWT,updateAccountDetails)
 router.route("/avatar").patch(verifyJWT,upload.single("avatar"),updateUserAvatar)
 
 router.route("/cover-image").patch(verifyJWT,upload.single("coverImage"),updateUserCoverImage) 
+
+router.route("/update-stats").post(verifyJWT,updateUserStats)
+
 
 
 

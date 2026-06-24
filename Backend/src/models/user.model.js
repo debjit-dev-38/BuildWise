@@ -6,22 +6,18 @@ import validator from "validator";
 const userStatsSchema = new Schema({
   dayStreak: {
     value: { type: Number, default: 0 },
-    delta: { type: String, default: "" }
   },
 
   projectsShipped: {
     value: { type: Number, default: 0 },
-    delta: { type: String, default: "" }
   },
 
   hoursLearned: {
     value: { type: Number, default: 0 },
-    delta: { type: String, default: "" }
   },
 
   currentLevel: {
     value: { type: Number, default: 1 },
-    delta: { type: String, default: "" }
   },
 
   xp: {
@@ -144,7 +140,10 @@ const userSchema = new Schema(
       default: null,
     },
 
-    userStats: [userStatsSchema]
+    userStats: {
+      type: userStatsSchema,
+      default: () => ({})
+    }
   },
   {
     timestamps: true,

@@ -7,6 +7,7 @@ import { Project } from "../models/projects.model.js";
 import validator from "validator";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
+import { Enrollment } from "../models/enrollment.model.js";
 const generateAccessAndRefreshTokens = async (userId) => {
     /*
         1. User logs in
@@ -162,11 +163,11 @@ const getAdminProject = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-    filter.name = {
-        $regex: search,
-        $options: "i"
-    };
-}
+        filter.name = {
+            $regex: search,
+            $options: "i"
+        };
+    }
 
     // ── Build the sort object ──────────────────────────────────────
     const sortMap = {
@@ -179,7 +180,7 @@ const getAdminProject = asyncHandler(async (req, res) => {
 
     // ── Run query + count in parallel ───────────────────────────────
     const [projects, totalProjects] = await Promise.all([
-        
+
         Project.find(filter)
             .select(
                 "_id slug name description color category difficulty duration stack metrics image featured newest recommended status modules"
@@ -191,7 +192,7 @@ const getAdminProject = asyncHandler(async (req, res) => {
 
         Project.countDocuments(filter),
     ]);
-   
+
     return res.status(200).json(
         new ApiResponse(
             200,
@@ -434,5 +435,48 @@ const updateUserRole = asyncHandler(async (req, res) => {
     );
 });
 
+const updateUserStats = asyncHandler(async (req, res) => {
+    const { action } = req.body
+    switch (action) {
+        case "update-totalProjects":
+            {
+                const { projectId } = req.body
 
-export {getAdminProject, updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
+                const enrollment = await Enrollment.findOneAndUpdate(
+                    {
+                        project:projectId,
+                        user:req.user._id
+                    },
+                    {
+                        $set: {
+                            status: "Completed"
+                        }
+                    },
+                    {
+                        new: true
+                    })
+
+
+                    const updatedUser=await User.findOneAndUpdate(
+                        req.user._id,
+                        {
+                            $inc:{
+                                "userStats.projectsShipped.value":1,
+                            }
+                        },
+                        {
+                            new:true
+                        }
+                    )
+
+                    return res.status(200).json(
+                        new ApiResponse(200,updatedUser,"Project status updated successfully")
+                    )
+                
+            }
+    }
+
+
+})
+
+export {updateUserStats, getAdminProject, updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }

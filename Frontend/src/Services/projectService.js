@@ -74,7 +74,7 @@ export const getProjectModules = async (slug) => {
 
   // Fetch enrollment
   const enrollmentRes = await api.get(
-    `/api/v1/enroll/get-status/${projectData._id}`
+    `/api/v1/enroll/get-enrollments/${projectData._id}`
   );
 
   const enrollment = enrollmentRes.data.data;

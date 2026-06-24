@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../Services/api";
 import axios from "axios";
 import Loader from "../Components/Loader";
@@ -21,6 +21,7 @@ import { getDashboardSummary } from "../Services/dashboardService";
 import { COLORS, FONTS, C } from "../Constants/theme";
 import { useContext } from "react";
 import { UserContext } from "../Context/UserContext";
+import DashboardCard from "../Components/DashboardCard";
 
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ const NAV = [
   { id: "admin", label: "Admin Panel", icon: Shield, path: "/admin", adminOnly: true },
 ];
 
+
 // ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, loading } = useContext(UserContext)
@@ -45,15 +47,17 @@ export default function Dashboard() {
   const scrollContainerRef = useRef(null);
   const [data, setData] = useState(null);
   const navigate = useNavigate()
+
   useEffect(() => {
     getDashboardSummary().then(setData);
   }, []);
+
 
   if (!data) return null;
 
   const { stats, paths, projects, activity, achievements } = data;
   if (loading) {
-    return <Loader  size="lg" text="Authenticating..." fullScreen />;
+    return <Loader size="lg" text="Authenticating..." fullScreen />;
   }
   if (!user) {
     return (
@@ -74,6 +78,40 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  console.log(user.userStats)
+
+  const dashboardStats = [
+    {
+      label: "Day Streak",
+      val: user?.userStats?.dayStreak?.value ?? 0,
+      suffix: "",
+      icon: Flame,
+      color: COLORS.amber,
+    },
+    {
+      label: "Projects Shipped",
+      val: user?.userStats?.projectsShipped?.value ?? 0,
+      suffix: "",
+      icon: Rocket,
+      color: COLORS.green,
+    },
+    {
+      label: "Hours Learned",
+      val: user?.userStats?.hoursLearned?.value ?? 0,
+      suffix: "",
+      icon: Clock,
+      color: COLORS.indigo,
+    },
+    {
+      label: "Current Level",
+      val: user?.userStats?.currentLevel?.value ?? 1,
+      suffix: "",
+      icon: TrendingUp,
+      color: COLORS.pink,
+    },
+  ];
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
       <style>{`
@@ -124,7 +162,7 @@ export default function Dashboard() {
                 <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em" }}>At a glance</h2>
               </FadeIn>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                {stats.map((s, i) => <StatCard key={s.label} stat={s} i={i} />)}
+                {dashboardStats.map((s, i) => <StatCard key={s.label} stat={s} i={i} />)}
               </div>
             </div>
 
@@ -601,16 +639,27 @@ function StatCard({ stat, i }) {
   return (
     <FadeIn delay={i * 0.07}>
       <Glass hoverAccent={stat.color} style={{ padding: "22px 20px" }}>
-        <div ref={ref} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div ref={ref} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, background: stat.color + "14", border: `1px solid ${stat.color}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon size={17} color={stat.color} />
           </div>
-          <span style={{ fontSize: 10, color: C.green, background: "rgba(110,231,183,0.1)", padding: "3px 8px", borderRadius: 20, fontWeight: 500 }}>{stat.delta}</span>
         </div>
-        <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 40, lineHeight: 1, marginBottom: 4, background: `linear-gradient(135deg, #fff 30%, ${stat.color} 100%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+        <div style={{
+          fontFamily: "'Instrument Serif', serif",
+          fontSize: 40,
+          lineHeight: 1,
+          marginBottom: 4,
+          background: `linear-gradient(135deg, #fff 30%, ${stat.color} 100%)`,
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          textAlign: "center", 
+        }}>
           {count}{stat.suffix}
         </div>
-        <div style={{ fontSize: 12, color: "#666" }}>{stat.label}</div>
+        <div style={{ fontSize: 12, color: "#666", textAlign: "center" }}> 
+          {stat.label}
+        </div>
       </Glass>
     </FadeIn>
   );
@@ -625,79 +674,7 @@ function ContinueLearning() {
         <SectionLabel>CONTINUE WHERE YOU LEFT OFF</SectionLabel>
         <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 16 }}>Current project</h2>
       </div>
-      <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-        style={{
-          borderRadius: 16, overflow: "hidden",
-          border: hov ? `1px solid ${C.green}28` : `1px solid ${C.border}`,
-          background: C.surface, backdropFilter: "blur(20px)",
-          transition: "all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)",
-          transform: hov ? "translateY(-3px)" : "translateY(0)",
-          boxShadow: hov ? `0 20px 60px ${C.green}0e` : "none",
-        }}>
-        <div style={{ height: 160, position: "relative", background: `radial-gradient(ellipse at 35% 60%, ${C.green}1a 0%, rgba(255,255,255,0.02) 70%)`, borderBottom: `1px solid ${C.border}`, overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-          <motion.div animate={{ scale: hov ? 1.05 : 1 }} transition={{ duration: 0.4 }}
-            style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 72, height: 72, borderRadius: 18, background: `${C.green}18`, border: `1px solid ${C.green}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 22, color: C.green }}>AI</div>
-          </motion.div>
-          <motion.div animate={{ y: hov ? -4 : 0 }} transition={{ duration: 0.4 }}
-            style={{ position: "absolute", top: 14, right: 16, background: "rgba(10,10,10,0.7)", backdropFilter: "blur(12px)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px" }}>
-            <div style={{ fontSize: 10, color: C.green, fontWeight: 600, marginBottom: 2 }}>PROGRESS</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#e5e5e5" }}>75% done</div>
-          </motion.div>
-          <motion.div animate={{ y: hov ? -4 : 0 }} transition={{ duration: 0.4, delay: 0.05 }}
-            style={{ position: "absolute", bottom: 14, left: 16, background: "rgba(10,10,10,0.7)", backdropFilter: "blur(12px)", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.amber }} />
-            <div style={{ fontSize: 11, color: "#e5e5e5" }}>Module 4 of 6</div>
-          </motion.div>
-        </div>
-        <div style={{ padding: "20px 22px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                <DiffBadge d="Intermediate" />
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Clock size={11} color="#555" />
-                  <span style={{ fontSize: 11, color: "#555" }}>4 weeks</span>
-                </div>
-              </div>
-              <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 4 }}>AI Chat Application</h3>
-              <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>Currently on: <span style={{ color: C.amber }}>Module 4 — Conversation History</span></p>
-            </div>
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: "#555" }}>Week 3 of 4</span>
-              <span style={{ fontSize: 11, color: C.green }}>75% complete</span>
-            </div>
-            <div style={{ height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 2, overflow: "hidden" }}>
-              <motion.div initial={{ width: 0 }} animate={{ width: "75%" }} transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
-                style={{ height: "100%", background: `linear-gradient(90deg, ${C.green}, ${C.indigo})`, borderRadius: 2 }} />
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
-            {[
-              { t: "Set up Next.js project", done: true },
-              { t: "OpenAI API integration", done: true },
-              { t: "Streaming responses", done: true },
-              { t: "Add conversation history", done: false, active: true },
-              { t: "Deploy to Vercel", done: false },
-            ].map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, background: s.done ? C.green + "20" : s.active ? C.amber + "20" : "rgba(255,255,255,0.04)", border: `1px solid ${s.done ? C.green + "50" : s.active ? C.amber + "50" : "rgba(255,255,255,0.1)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {s.done ? <Check size={9} color={C.green} /> : s.active ? <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.amber }} /> : null}
-                </div>
-                <span style={{ fontSize: 12, color: s.done ? "#888" : s.active ? C.amber : "#444", textDecoration: s.done ? "line-through" : "none" }}>{s.t}</span>
-                {s.active && <span style={{ fontSize: 10, background: "rgba(252,211,77,0.12)", color: C.amber, padding: "2px 6px", borderRadius: 4, marginLeft: "auto" }}>current</span>}
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <PrimaryBtn style={{ flex: 1, justifyContent: "center" }}><Play size={13} /> Continue Module 4</PrimaryBtn>
-            <GhostBtn><ExternalLink size={13} /></GhostBtn>
-          </div>
-        </div>
-      </div>
+      <DashboardCard/>
     </FadeIn>
   );
 }

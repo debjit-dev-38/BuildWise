@@ -236,7 +236,7 @@ export default function BuildWiseLearningPage() {
   const activeIndex = modules.findIndex((m) => m.id === activeId);
   const prevModule = activeIndex > 0 ? modules[activeIndex - 1] : null;
   const nextModule = activeIndex < modules.length - 1 ? modules[activeIndex + 1] : null;
-  const allDone = progress.completedModules === progress.totalModules;
+  const allDone = modules.length > 0 && progress.completedModules === progress.totalModules;;
 
 
   const moduleStatus = (m) => {
@@ -253,6 +253,20 @@ export default function BuildWiseLearningPage() {
       return acc + hrs;
     }, 0);
 
+  async function handleProjectComplete() {
+    try {
+      const response = await api.post("/api/v1/users/update-stats", {
+        action: "update-totalProjects",
+        projectId: project.id
+      }
+      )
+
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+
   async function handleMarkComplete() {
 
     try {
@@ -263,6 +277,12 @@ export default function BuildWiseLearningPage() {
           moduleId: activeModule.id
         }
       );
+      const isFinalModule =modules.length > 0 && progress.completedModules + 1 === modules.length;
+
+      if (isFinalModule) {
+        await handleProjectComplete();
+      }
+
       setShowModal(false);
       setModules((prev) => {
         const idx = prev.findIndex((m) => m.id === activeId);
