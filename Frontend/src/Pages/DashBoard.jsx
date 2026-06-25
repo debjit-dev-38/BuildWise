@@ -79,39 +79,6 @@ export default function Dashboard() {
     );
   }
 
-  console.log(user.userStats)
-
-  const dashboardStats = [
-    {
-      label: "Day Streak",
-      val: user?.userStats?.dayStreak?.value ?? 0,
-      suffix: "",
-      icon: Flame,
-      color: COLORS.amber,
-    },
-    {
-      label: "Projects Shipped",
-      val: user?.userStats?.projectsShipped?.value ?? 0,
-      suffix: "",
-      icon: Rocket,
-      color: COLORS.green,
-    },
-    {
-      label: "Hours Learned",
-      val: user?.userStats?.hoursLearned?.value ?? 0,
-      suffix: "",
-      icon: Clock,
-      color: COLORS.indigo,
-    },
-    {
-      label: "Current Level",
-      val: user?.userStats?.currentLevel?.value ?? 1,
-      suffix: "",
-      icon: TrendingUp,
-      color: COLORS.pink,
-    },
-  ];
-
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
       <style>{`
@@ -162,7 +129,7 @@ export default function Dashboard() {
                 <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em" }}>At a glance</h2>
               </FadeIn>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                {dashboardStats.map((s, i) => <StatCard key={s.label} stat={s} i={i} />)}
+                {stats.map((s, i) => <StatCard key={s.label} stat={s} i={i} />)}
               </div>
             </div>
 
@@ -185,7 +152,13 @@ export default function Dashboard() {
                     </div>
                   </FadeIn>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-                    {projects.map((p, i) => <ProjectCard key={p.name} p={p} i={i} />)}
+                    {projects.map((enrollment, i) => (
+                      <ProjectCard
+                        key={enrollment._id}
+                        p={enrollment.project}
+                        i={i}
+                      />
+                    ))}
                   </div>
                 </div>
 
@@ -653,11 +626,11 @@ function StatCard({ stat, i }) {
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",
-          textAlign: "center", 
+          textAlign: "center",
         }}>
           {count}{stat.suffix}
         </div>
-        <div style={{ fontSize: 12, color: "#666", textAlign: "center" }}> 
+        <div style={{ fontSize: 12, color: "#666", textAlign: "center" }}>
           {stat.label}
         </div>
       </Glass>
@@ -674,7 +647,7 @@ function ContinueLearning() {
         <SectionLabel>CONTINUE WHERE YOU LEFT OFF</SectionLabel>
         <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 16 }}>Current project</h2>
       </div>
-      <DashboardCard/>
+      <DashboardCard />
     </FadeIn>
   );
 }
@@ -719,26 +692,27 @@ function PathCard({ p, i }) {
 
 // ── PROJECT CARDS ─────────────────────────────────────────────────────────────
 function ProjectCard({ p, i }) {
+  const accent = COLORS[p.color] ?? COLORS.green;
   const [hov, setHov] = useState(false);
   return (
     <FadeIn delay={i * 0.07}>
       <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
         style={{
           borderRadius: 12, overflow: "hidden",
-          border: hov ? `1px solid ${p.color}30` : `1px solid ${C.border}`,
+          border: hov ? `1px solid ${accent}30` : `1px solid ${C.border}`,
           background: C.surface, backdropFilter: "blur(20px)",
           transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
           transform: hov ? "translateY(-4px)" : "translateY(0)",
-          boxShadow: hov ? `0 16px 48px ${p.color}10` : "none",
+          boxShadow: hov ? `0 16px 48px ${accent}10` : "none",
           cursor: "pointer",
         }}>
-        <div style={{ height: 100, position: "relative", background: `radial-gradient(ellipse at 40% 60%, ${p.color}18 0%, rgba(255,255,255,0.02) 70%)`, borderBottom: `1px solid ${C.border}`, overflow: "hidden" }}>
+        <div style={{ height: 100, position: "relative", background: `radial-gradient(ellipse at 40% 60%, ${accent}18 0%, rgba(255,255,255,0.02) 70%)`, borderBottom: `1px solid ${C.border}`, overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
           <motion.div animate={{ scale: hov ? 1.07 : 1 }} transition={{ duration: 0.4 }}
             style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 11, background: p.color + "18", border: `1px solid ${p.color}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 14, color: p.color }}>{p.image}</div>
+            <div style={{ width: 44, height: 44, borderRadius: 11, background: accent + "18", border: `1px solid ${accent}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 14, color: accent }}>{p.image}</div>
           </motion.div>
-          <div style={{ position: "absolute", bottom: 8, left: 10 }}><DiffBadge d={p.diff} /></div>
+          <div style={{ position: "absolute", bottom: 8, left: 10 }}><DiffBadge d={p.difficulty} /></div>
           {p.progress === 100 && (
             <div style={{ position: "absolute", top: 8, right: 8, background: C.green + "20", border: `1px solid ${C.green}35`, borderRadius: 6, padding: "3px 7px", fontSize: 10, color: C.green, fontWeight: 600 }}>✓ Done</div>
           )}
@@ -749,22 +723,33 @@ function ProjectCard({ p, i }) {
             <div style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 10, color: "#555" }}>Progress</span>
-                <span style={{ fontSize: 10, color: p.color }}>{p.progress}%</span>
+                <span style={{ fontSize: 10, color: accent }}>{p.progress}%</span>
               </div>
               <div style={{ height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 1, overflow: "hidden" }}>
-                <div style={{ width: `${p.progress}%`, height: "100%", background: p.color, borderRadius: 1, transition: "width 1s ease" }} />
+                <div style={{ width: `${p.progress}%`, height: "100%", background: accent, borderRadius: 1, transition: "width 1s ease" }} />
               </div>
             </div>
           )}
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-            {p.stack.slice(0, 3).map(t => (
-              <span key={t} style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", color: "#777", padding: "2px 7px", borderRadius: 4 }}>{t}</span>
+            {(p.stack ?? []).slice(0, 3).map((tech) => (
+              <span
+                key={tech.name}
+                style={{
+                  fontSize: 10,
+                  background: "rgba(255,255,255,0.05)",
+                  color: "#777",
+                  padding: "2px 7px",
+                  borderRadius: 4,
+                }}
+              >
+                {tech.name}
+              </span>
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Clock size={10} color="#555" />
-            <span style={{ fontSize: 11, color: "#555", flex: 1 }}>{p.dur}</span>
-            <ChevronRight size={13} color={hov ? p.color : "#444"} style={{ transition: "color 0.2s" }} />
+            <span style={{ fontSize: 11, color: "#555", flex: 1 }}>{p.duration}</span>
+            <ChevronRight size={13} color={hov ? accent : "#444"} style={{ transition: "color 0.2s" }} />
           </div>
         </div>
       </div>

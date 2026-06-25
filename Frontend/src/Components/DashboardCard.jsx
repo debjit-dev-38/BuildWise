@@ -45,7 +45,7 @@ export default function DashboardCard() {
 
   useEffect(() => {
     api
-      .get("/api/v1/enroll/dashboard")
+      .get("/api/v1/dashboard/get-dashboardCard")
       .then((res) => setData(res.data.data))
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -572,7 +572,7 @@ export default function ProjectDetails() {
               <div onClick={handleEnroll} style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <motion.button whileHover={{ y: -1, boxShadow: "0 8px 28px rgba(110,231,183,0.35)" }} whileTap={{ scale: 0.97 }}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px 18px", borderRadius: 12, background: "#6EE7B7", color: "#0A0A0A", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(110,231,183,0.25)" }}>
-                  {status === "Enrolled" ? <> Continue Learning <ChevronRight size={12} /> </> : <>Enroll Now <Play size={12} /></>}
+                  {status === "Live" ? <>Enroll Now <Play size={12} /></>:<> Continue Learning <ChevronRight size={12} /> </> }
                 </motion.button>
               </div>
 
