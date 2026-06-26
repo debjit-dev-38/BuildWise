@@ -110,32 +110,69 @@ const getDashboardCard = asyncHandler(async (req, res) => {
 )
 
 
-const getUserStats = asyncHandler(
-    async (req, res) => {
-        const user = await User.findById(req.user._id).select("userStats")
+const getUserStats = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select("userStats");
 
-        return res.status(200).json(
-            new ApiResponse(200, user, "User stats fetched")
-        )
+    if (!user) {
+        throw new ApiError(404, "User not found");
     }
-)
+
+    const lastActiveDate = user.userStats.lastActiveDate;
+
+    // No learning activity yet
+    if (!lastActiveDate) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    ...user.userStats.toObject(),
+                    dayStreak: {
+                        value: 0,
+                    },
+                },
+                "User stats fetched"
+            )
+        );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastDay = new Date(lastActiveDate);
+    lastDay.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.floor(
+        (today - lastDay) / (1000 * 60 * 60 * 24)
+    );
+
+    // If they missed at least one full calendar day, streak is dead.
+    // Yesterday = diffDays 1, so it is still alive.
+    if (diffDays > 1 && user.userStats.dayStreak.value !== 0) {
+        user.userStats.dayStreak.value = 0;
+        await user.save();
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, user.userStats, "User stats fetched")
+    );
+});
 
 const getUserProjects = asyncHandler(async (req, res) => {
-  const projects = await Enrollment.find({
-    user: req.user._id,
-  })
-    .sort({ createdAt: -1 }) // newest enrollment first
-    .limit(3)
-    .select("project")
-    .populate({
-      path: "project",
-      select: "name color duration difficulty image stack.name",
+    const projects = await Enrollment.find({
+        user: req.user._id,
     })
-    .lean();
+        .sort({ createdAt: -1 }) // newest enrollment first
+        .limit(3)
+        .select("project")
+        .populate({
+            path: "project",
+            select: "name color duration difficulty image stack.name",
+        })
+        .lean();
 
-  return res.status(200).json(
-    new ApiResponse(200, projects, "Recent projects fetched successfully")
-  );
+    return res.status(200).json(
+        new ApiResponse(200, projects, "Recent projects fetched successfully")
+    );
 });
 
 export { getUserProjects, getUserStats, getDashboardCard }

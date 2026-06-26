@@ -1,237 +1,63 @@
-import { useState, useEffect, useRef, } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useContext } from "react";
+import { useNavigate, NavLink } from "react-router-dom";
 import api from "../Services/api";
-import axios from "axios";
 import Loader from "../Components/Loader";
-import { motion, AnimatePresence, useInView } from "framer-motion";
-import { NavLink } from "react-router-dom";
+import { motion, useInView } from "framer-motion";
 import {
-  Hammer, Home, FolderOpen, Map, Trophy, Settings, Bell,
-  Search, ChevronLeft, ChevronRight, ArrowRight, Flame, BookOpen, Clock,
-  Star, TrendingUp, Zap, Play, Check, Lock, BarChart2,
-  GitCommit, Code2, Rocket, Brain, Monitor, Server, Layers,
-  Smartphone, Menu, X, User, LogOut, ExternalLink, Sparkles,
-  Target, Award, Coffee, ChevronUp, Shield,
-  LayoutDashboard, BadgeInfo,
-  // Settings section icons
-  Camera, KeyRound, Trash2, RotateCcw, ShieldCheck,
-  PlusCircle, Edit3, UserCog, BookOpenCheck,
+  Hammer, Home, FolderOpen, Trophy, Settings, Bell,
+  Search, ChevronLeft, ChevronRight, ArrowRight, Flame, Clock,
+  Zap, Play, Check, Lock, Rocket, Menu, User,
+  Target, Shield, BadgeInfo, Camera, KeyRound,
+  Trash2, RotateCcw, BookOpenCheck, Star, TrendingUp, Award,
 } from "lucide-react";
 import { getDashboardSummary } from "../Services/dashboardService";
-import { COLORS, FONTS, C } from "../Constants/theme";
-import { useContext } from "react";
+import { COLORS, C } from "../Constants/theme";
 import { UserContext } from "../Context/UserContext";
 import DashboardCard from "../Components/DashboardCard";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ── DATA ─────────────────────────────────────────────────────────────────────
-
-// [Settings Navigation Item]
-// "settings" uses in-page scroll. "admin" is scroll-anchor, adminOnly.
 const NAV = [
   { id: "home", label: "Home", icon: Home, path: "/" },
   { id: "projects", label: "Projects", icon: FolderOpen, path: "/projects" },
   { id: "about", label: "About", icon: BadgeInfo, path: "/about" },
-  { id: "paths", label: "Learning Paths", icon: Map, scroll: "learning-paths" },
   { id: "achieve", label: "Achievements", icon: Trophy, scroll: "achievements" },
-  { id: "settings", label: "Settings", icon: Settings, scroll: "settings" },      // [Settings Navigation Item]
+  { id: "settings", label: "Settings", icon: Settings, scroll: "settings" },
   { id: "admin", label: "Admin Panel", icon: Shield, path: "/admin", adminOnly: true },
 ];
 
+const inputStyle = {
+  width: "100%", padding: "9px 12px",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: 9, color: "#e5e5e5", fontSize: 13,
+  outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+  transition: "border-color 0.2s",
+};
 
-// ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
-export default function Dashboard() {
-  const { user, loading } = useContext(UserContext)
-  const [active, setActive] = useState("home");
-  const [collapsed, setCollapsed] = useState(false);
-  const scrollContainerRef = useRef(null);
-  const [data, setData] = useState(null);
-  const navigate = useNavigate()
+const labelStyle = {
+  fontSize: 10.5, color: "#555", letterSpacing: "0.08em",
+  textTransform: "uppercase", fontWeight: 500,
+  marginBottom: 6, display: "block",
+};
 
-  useEffect(() => {
-    getDashboardSummary().then(setData);
-  }, []);
+const SECTION_HEAD = {
+  fontFamily: "'Instrument Serif', serif",
+  fontSize: 22, color: "#f2f2f2",
+  letterSpacing: "-0.018em", lineHeight: 1.2,
+};
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HOOKS
+// ─────────────────────────────────────────────────────────────────────────────
 
-  if (!data) return null;
-
-  const { stats, paths, projects, activity, achievements } = data;
-  if (loading) {
-    return <Loader size="lg" text="Authenticating..." fullScreen />;
-  }
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-sm mx-auto p-8">
-          <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
-            <Shield size={20} className="text-rose-400/70" />
-          </div>
-          <h1 className="text-xl font-semibold text-white mb-3">Access Required</h1>
-          <p className="text-white/40 text-sm mb-6 leading-relaxed">
-            Sign in to access your dashboard, projects, learning paths, achievements and progress.
-          </p>
-          <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
-            <ChevronLeft size={14} strokeWidth={2.5} /> Login
-          </a>
-        </motion.div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", display: "flex" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { overflow-x: hidden; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #0A0A0A; }
-        ::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-        input::placeholder { color: #444; }
-        input, select { box-sizing: border-box; }
-        select option { background: #111; color: #e5e5e5; }
-      `}</style>
-
-      <Sidebar
-        active={active}
-        setActive={setActive}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        scrollContainerRef={scrollContainerRef}
-      />
-
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflowY: "auto", maxHeight: "100vh" }}>
-        {/* Ambient background */}
-        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "60px 60px", opacity: 0.6 }} />
-          <div style={{ position: "absolute", top: "5%", left: "25%", width: 500, height: 300, background: `radial-gradient(ellipse, ${C.green}07 0%, transparent 70%)` }} />
-          <div style={{ position: "absolute", top: "50%", right: "5%", width: 350, height: 300, background: `radial-gradient(ellipse, ${C.indigo}06 0%, transparent 70%)` }} />
-          <div style={{ position: "absolute", bottom: "10%", left: "40%", width: 300, height: 200, background: `radial-gradient(ellipse, ${C.amber}05 0%, transparent 70%)` }} />
-        </div>
-
-        <div style={{ position: "relative", zIndex: 20 }}>
-          <Header />
-        </div>
-
-        <div ref={scrollContainerRef} style={{ flex: 1, overflowY: "auto", position: "relative", zIndex: 10 }}>
-          <WelcomeHero />
-
-          <div style={{ padding: "32px 32px 0" }}>
-            <div style={{ marginBottom: 32 }}><QuickActions /></div>
-
-            {/* Stat cards */}
-            <div style={{ marginBottom: 36 }}>
-              <FadeIn style={{ marginBottom: 14 }}>
-                <SectionLabel>YOUR PROGRESS</SectionLabel>
-                <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em" }}>At a glance</h2>
-              </FadeIn>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-                {stats.map((s, i) => <StatCard key={s.label} stat={s} i={i} />)}
-              </div>
-            </div>
-
-            {/* Main 2-col layout */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start", marginBottom: 36 }}>
-
-              {/* Left col */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-                <ContinueLearning />
-
-                {/* Projects */}
-                <div>
-                  <FadeIn style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <div>
-                        <SectionLabel>PROJECTS</SectionLabel>
-                        <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em" }}>My projects</h2>
-                      </div>
-                      <GhostBtn style={{ fontSize: 12, padding: "6px 12px" }}>View all <ArrowRight size={12} /></GhostBtn>
-                    </div>
-                  </FadeIn>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-                    {projects.map((enrollment, i) => (
-                      <ProjectCard
-                        key={enrollment._id}
-                        p={enrollment.project}
-                        i={i}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Achievements */}
-                <AchievementsSection achievements={achievements} />
-
-                {/* Learning Paths */}
-                <LearningPathsSection paths={paths} />
-
-                {/* [Settings Section] */}
-                <SettingsSection user={user} />
-              </div>
-
-              {/* Right col */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-                <FadeIn>
-                  <div>
-                    <SectionLabel>PATHS</SectionLabel>
-                    <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 16 }}>Learning paths</h2>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {paths.map((p, i) => <PathCard key={p.title} p={p} i={i} />)}
-                    </div>
-                  </div>
-                </FadeIn>
-
-                <ActivityFeed activity={activity} />
-
-                <FadeIn delay={0.1}>
-                  <div style={{ borderRadius: 14, padding: "24px 20px", border: "1px solid rgba(110,231,183,0.15)", background: "rgba(110,231,183,0.03)", backdropFilter: "blur(20px)", textAlign: "center", position: "relative", overflow: "hidden" }}>
-                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "140%", height: "140%", background: `radial-gradient(ellipse, ${C.green}07 0%, transparent 65%)`, pointerEvents: "none" }} />
-                    <div style={{ position: "relative", zIndex: 1 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 11, background: C.green + "14", border: `1px solid ${C.green}28`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-                        <Target size={18} color={C.green} />
-                      </div>
-                      <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: "#f0f0f0", marginBottom: 8 }}>Start a new path</div>
-                      <p style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>Pick a learning path and build something real from day one.</p>
-                      <PrimaryBtn style={{ width: "100%", justifyContent: "center", padding: "9px" }}>
-                        <Map size={13} /> Browse Paths
-                      </PrimaryBtn>
-                    </div>
-                  </div>
-                </FadeIn>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div style={{ padding: "24px 32px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <div style={{ width: 20, height: 20, borderRadius: 5, background: "linear-gradient(135deg, #6EE7B7, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Hammer size={10} color="#0A0A0A" />
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>BuildWise</span>
-            </div>
-            <span style={{ fontSize: 11, color: "#333" }}>© 2025 BuildWise. All rights reserved.</span>
-            <div style={{ display: "flex", gap: 16 }}>
-              {["Help", "Privacy", "Status"].map(l => (
-                <span key={l} style={{ fontSize: 11, color: "#444", cursor: "pointer" }}>{l}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── HOOKS ────────────────────────────────────────────────────────────────────
-function useCountUp(target, isInView, duration = 1200) {
+function useCountUp(target, isInView, duration = 1100) {
   const [count, setCount] = useState(0);
   useEffect(() => {
-    if (!isInView) return;
-    const steps = 50, inc = target / steps;
+    if (!isInView || !target) return;
+    const steps = 45, inc = target / steps;
     let cur = 0;
     const t = setInterval(() => {
       cur += inc;
@@ -243,37 +69,59 @@ function useCountUp(target, isInView, duration = 1200) {
   return count;
 }
 
-// ── REUSABLE PRIMITIVES ───────────────────────────────────────────────────────
+function useHover() {
+  const [hov, setHov] = useState(false);
+  return [hov, { onMouseEnter: () => setHov(true), onMouseLeave: () => setHov(false) }];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIMITIVES
+// ─────────────────────────────────────────────────────────────────────────────
+
 function FadeIn({ children, delay = 0, y = 16, style = {}, className = "" }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const inView = useInView(ref, { once: true, margin: "-30px" });
   return (
     <motion.div ref={ref}
       initial={{ opacity: 0, y }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.55, delay, ease: [0.25, 0.8, 0.25, 1] }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
       style={style} className={className}>
       {children}
     </motion.div>
   );
 }
 
-function Glass({ children, style = {}, hoverAccent, onClick, className = "" }) {
-  const [hov, setHov] = useState(false);
+// Elevated glass panel — three distinct elevation levels
+function Panel({ children, style = {}, elevation = 1, accent, onClick }) {
+  const [hov, handlers] = useHover();
+  const bases = [
+    "rgba(255,255,255,0.025)",  // 0 — sunken
+    "rgba(255,255,255,0.04)",   // 1 — default surface
+    "rgba(255,255,255,0.065)",  // 2 — raised
+  ];
+  const hovBg = [
+    "rgba(255,255,255,0.04)",
+    "rgba(255,255,255,0.06)",
+    "rgba(255,255,255,0.09)",
+  ];
+  const shadows = [
+    "none",
+    "0 2px 16px rgba(0,0,0,0.3)",
+    "0 8px 32px rgba(0,0,0,0.4)",
+  ];
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      className={className}
+    <div {...(onClick ? { onClick, ...handlers } : handlers)}
       style={{
-        background: hov ? C.surfaceHov : C.surface,
-        border: `1px solid ${hov && hoverAccent ? hoverAccent + "30" : C.border}`,
-        backdropFilter: "blur(20px)",
-        borderRadius: 14,
-        transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-        transform: hov ? "translateY(-3px)" : "translateY(0)",
-        boxShadow: hov && hoverAccent ? `0 16px 48px ${hoverAccent}0f` : "0 4px 24px rgba(0,0,0,0.2)",
+        background: hov && onClick ? hovBg[elevation] : bases[elevation],
+        border: `1px solid ${hov && accent ? accent + "28" : "rgba(255,255,255,0.07)"}`,
+        backdropFilter: "blur(24px)",
+        borderRadius: 16,
+        boxShadow: hov && accent
+          ? `${shadows[elevation]}, 0 0 40px ${accent}0a`
+          : shadows[elevation],
+        transition: "all 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+        transform: hov && onClick ? "translateY(-2px)" : "translateY(0)",
         cursor: onClick ? "pointer" : "default",
         ...style,
       }}>
@@ -283,19 +131,21 @@ function Glass({ children, style = {}, hoverAccent, onClick, className = "" }) {
 }
 
 function PrimaryBtn({ children, onClick, style = {} }) {
-  const [hov, setHov] = useState(false);
+  const [hov, handlers] = useHover();
   return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <button onClick={onClick} {...handlers}
       style={{
         display: "inline-flex", alignItems: "center", gap: 7,
-        padding: "9px 18px", background: hov ? "#5DCAA5" : C.green,
-        color: "#0A0A0A", fontWeight: 600, fontSize: 13,
-        borderRadius: 8, border: "none", cursor: "pointer",
-        transition: "all 0.2s ease",
+        padding: "9px 20px",
+        background: hov
+          ? `linear-gradient(135deg, #7EEFC0, ${C.green})`
+          : `linear-gradient(135deg, ${C.green}, #55C49A)`,
+        color: "#071A12", fontWeight: 700, fontSize: 13,
+        borderRadius: 9, border: "none", cursor: "pointer",
+        transition: "all 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
         transform: hov ? "translateY(-1px)" : "translateY(0)",
-        boxShadow: hov ? `0 8px 20px ${C.green}25` : "none",
+        boxShadow: hov ? `0 8px 24px ${C.green}30` : `0 2px 8px ${C.green}18`,
+        letterSpacing: "-0.01em",
         fontFamily: "inherit", ...style,
       }}>
       {children}
@@ -304,17 +154,16 @@ function PrimaryBtn({ children, onClick, style = {} }) {
 }
 
 function GhostBtn({ children, onClick, style = {} }) {
-  const [hov, setHov] = useState(false);
+  const [hov, handlers] = useHover();
   return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <button onClick={onClick} {...handlers}
       style={{
         display: "inline-flex", alignItems: "center", gap: 7,
         padding: "9px 18px",
-        background: hov ? "rgba(255,255,255,0.05)" : "transparent",
-        color: hov ? C.text : "#888", fontSize: 13, fontWeight: 400,
-        borderRadius: 8, border: `1px solid ${hov ? C.borderHov : C.border}`,
+        background: hov ? "rgba(255,255,255,0.06)" : "transparent",
+        color: hov ? "#d0d0d0" : "#666", fontSize: 13, fontWeight: 400,
+        borderRadius: 9,
+        border: `1px solid ${hov ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)"}`,
         cursor: "pointer", transition: "all 0.2s ease", fontFamily: "inherit", ...style,
       }}>
       {children}
@@ -322,19 +171,17 @@ function GhostBtn({ children, onClick, style = {} }) {
   );
 }
 
-// Danger button — same shell as GhostBtn but red palette
 function DangerBtn({ children, onClick, style = {} }) {
-  const [hov, setHov] = useState(false);
+  const [hov, handlers] = useHover();
   return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <button onClick={onClick} {...handlers}
       style={{
         display: "inline-flex", alignItems: "center", gap: 7,
         padding: "9px 18px",
-        background: hov ? "rgba(239,68,68,0.08)" : "transparent",
-        color: hov ? "#FCA5A5" : "#888", fontSize: 13, fontWeight: 400,
-        borderRadius: 8, border: `1px solid ${hov ? "rgba(239,68,68,0.35)" : C.border}`,
+        background: hov ? "rgba(239,68,68,0.1)" : "transparent",
+        color: hov ? "#FCA5A5" : "#666", fontSize: 13, fontWeight: 400,
+        borderRadius: 9,
+        border: `1px solid ${hov ? "rgba(239,68,68,0.32)" : "rgba(255,255,255,0.08)"}`,
         cursor: "pointer", transition: "all 0.2s ease", fontFamily: "inherit", ...style,
       }}>
       {children}
@@ -342,9 +189,13 @@ function DangerBtn({ children, onClick, style = {} }) {
   );
 }
 
-function SectionLabel({ children }) {
+function EyebrowLabel({ children }) {
   return (
-    <p style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: C.green, fontWeight: 500, marginBottom: 6 }}>
+    <p style={{
+      fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase",
+      color: C.green, fontWeight: 600, marginBottom: 5,
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
       {children}
     </p>
   );
@@ -352,167 +203,252 @@ function SectionLabel({ children }) {
 
 function DiffBadge({ d }) {
   const map = {
-    Beginner: { bg: "rgba(110,231,183,0.12)", color: C.green },
-    Intermediate: { bg: "rgba(252,211,77,0.12)", color: C.amber },
-    Advanced: { bg: "rgba(129,140,248,0.12)", color: C.indigo },
-    Expert: { bg: "rgba(249,168,212,0.12)", color: C.pink },
+    Beginner: { bg: `${C.green}14`, color: C.green },
+    Intermediate: { bg: `${C.amber}14`, color: C.amber },
+    Advanced: { bg: `${C.indigo}14`, color: C.indigo },
+    Expert: { bg: `${C.pink}14`, color: C.pink },
   };
   const s = map[d] || map.Intermediate;
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 5, background: s.bg, color: s.color }}>{d}</span>
+    <span style={{
+      fontSize: 9.5, fontWeight: 700, padding: "3px 8px",
+      borderRadius: 5, background: s.bg, color: s.color,
+      letterSpacing: "0.04em",
+    }}>{d}</span>
   );
 }
 
-// Shared form field styles used in Settings cards
-const inputStyle = {
-  width: "100%", padding: "9px 12px",
-  background: "rgba(255,255,255,0.04)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 9, color: "#e5e5e5", fontSize: 13,
-  outline: "none", fontFamily: "inherit", boxSizing: "border-box",
-  transition: "border-color 0.2s",
-};
-const labelStyle = {
-  fontSize: 11, color: "#666", letterSpacing: "0.06em",
-  textTransform: "uppercase", fontWeight: 500,
-  marginBottom: 6, display: "block",
-};
+function SectionDivider() {
+  return (
+    <div style={{
+      height: 1,
+      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent)",
+      margin: "0 0 36px",
+    }} />
+  );
+}
 
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function EmptyState({ icon: Icon, color, title, body, action }) {
+  return (
+    <div style={{
+      padding: "44px 24px", textAlign: "center",
+      borderRadius: 16,
+      border: "1px dashed rgba(255,255,255,0.07)",
+      background: "rgba(255,255,255,0.01)",
+    }}>
+      <div style={{
+        width: 46, height: 46, borderRadius: 12,
+        background: color + "10", border: `1px solid ${color}1E`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        margin: "0 auto 14px",
+      }}>
+        <Icon size={19} color={color} />
+      </div>
+      <p style={{ fontWeight: 600, color: "#d0d0d0", fontSize: 14, marginBottom: 6 }}>{title}</p>
+      <p style={{ fontSize: 12, color: "#555", marginBottom: 20, lineHeight: 1.65 }}>{body}</p>
+      {action}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIDEBAR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SidebarNavItem({ item, isActive, collapsed, onClick }) {
+  const [hov, handlers] = useHover();
+  const Icon = item.icon;
+  const highlighted = isActive;
+  return (
+    <button
+      onClick={onClick}
+      {...handlers}
+      style={{
+        display: "flex", alignItems: "center",
+        gap: collapsed ? 0 : 10,
+        padding: collapsed ? "10px" : "8px 11px",
+        justifyContent: collapsed ? "center" : "flex-start",
+        borderRadius: 9,
+        border: `1px solid ${highlighted ? `${C.green}28` : "transparent"}`,
+        background: highlighted
+          ? `${C.green}0C`
+          : hov ? "rgba(255,255,255,0.04)" : "transparent",
+        color: highlighted ? C.green : hov ? "#c8c8c8" : "#666",
+        transition: "all 0.18s ease",
+        width: "100%", textAlign: "left",
+        cursor: "pointer", fontFamily: "inherit",
+      }}>
+      <Icon size={15} style={{ flexShrink: 0 }} />
+      {!collapsed && (
+        <span style={{ fontSize: 13, fontWeight: highlighted ? 500 : 400, whiteSpace: "nowrap" }}>
+          {item.label}
+        </span>
+      )}
+      {!collapsed && highlighted && (
+        <div style={{
+          marginLeft: "auto", width: 5, height: 5, borderRadius: "50%",
+          background: C.green, boxShadow: `0 0 7px ${C.green}`,
+        }} />
+      )}
+    </button>
+  );
+}
+
+function SidebarNavLink({ item, collapsed }) {
+  const [hov, handlers] = useHover();
+  const Icon = item.icon;
+  return (
+    <NavLink
+      to={item.path}
+      {...handlers}
+      style={({ isActive }) => ({
+        display: "flex", alignItems: "center",
+        gap: collapsed ? 0 : 10,
+        padding: collapsed ? "10px" : "8px 11px",
+        justifyContent: collapsed ? "center" : "flex-start",
+        borderRadius: 9,
+        border: `1px solid ${isActive ? `${C.green}28` : "transparent"}`,
+        background: isActive
+          ? `${C.green}0C`
+          : hov ? "rgba(255,255,255,0.04)" : "transparent",
+        color: isActive ? C.green : hov ? "#c8c8c8" : "#666",
+        transition: "all 0.18s ease",
+        width: "100%", textDecoration: "none",
+      })}>
+      {({ isActive }) => (
+        <>
+          <Icon size={15} style={{ flexShrink: 0 }} />
+          {!collapsed && (
+            <span style={{ fontSize: 13, fontWeight: isActive ? 500 : 400, whiteSpace: "nowrap" }}>
+              {item.label}
+            </span>
+          )}
+          {!collapsed && isActive && (
+            <div style={{
+              marginLeft: "auto", width: 5, height: 5, borderRadius: "50%",
+              background: C.green, boxShadow: `0 0 7px ${C.green}`,
+            }} />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRef }) {
   const { user } = useContext(UserContext);
-  function scrollToSection(sectionId) {
+
+  function scrollToSection(id) {
     const container = scrollContainerRef.current;
-    const target = document.getElementById(sectionId);
+    const target = document.getElementById(id);
     if (!container || !target) return;
-    const containerTop = container.getBoundingClientRect().top;
-    const targetTop = target.getBoundingClientRect().top;
-    const offset = 72;
-    container.scrollBy({ top: targetTop - containerTop - offset, behavior: "smooth" });
+    container.scrollBy({
+      top: target.getBoundingClientRect().top - container.getBoundingClientRect().top - 80,
+      behavior: "smooth",
+    });
   }
 
   return (
     <motion.aside
-      initial={{ x: -20, opacity: 0 }}
+      initial={{ x: -24, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       style={{
-        width: collapsed ? 68 : 220, flexShrink: 0,
+        width: collapsed ? 64 : 216, flexShrink: 0,
         height: "100vh", position: "sticky", top: 0,
         display: "flex", flexDirection: "column",
-        background: "rgba(10,10,10,0.7)", backdropFilter: "blur(28px)",
-        borderRight: `1px solid ${C.border}`,
-        transition: "width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        background: "rgba(8,8,8,0.88)",
+        backdropFilter: "blur(32px)",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        transition: "width 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
         zIndex: 40, overflow: "hidden",
       }}>
+
       {/* Logo */}
-      <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, #6EE7B7, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Hammer size={15} color="#0A0A0A" />
+      <div style={{
+        padding: "17px 13px 14px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: "linear-gradient(135deg, #6EE7B7 0%, #818CF8 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 2px 10px rgba(110,231,183,0.25)",
+        }}>
+          <Hammer size={13} color="#071A12" />
         </div>
         {!collapsed && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-            style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-0.02em", color: "#fff", whiteSpace: "nowrap" }}>
+          <motion.span
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.08 }}
+            style={{ fontWeight: 700, fontSize: 14, letterSpacing: "-0.025em", color: "#fff", whiteSpace: "nowrap" }}>
             BuildWise
           </motion.span>
         )}
-        <button onClick={() => setCollapsed(!collapsed)}
-          style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", flexShrink: 0, padding: 4, borderRadius: 6, transition: "color 0.2s" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#e5e5e5")}
-          onMouseLeave={e => (e.currentTarget.style.color = "#555")}>
-          <Menu size={15} />
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          style={{
+            marginLeft: "auto", background: "none", border: "none",
+            cursor: "pointer", color: "#444", display: "flex",
+            flexShrink: 0, padding: 4, borderRadius: 6,
+            transition: "color 0.18s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#999")}
+          onMouseLeave={e => (e.currentTarget.style.color = "#444")}>
+          <Menu size={14} />
         </button>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+      <nav style={{
+        flex: 1, padding: "10px 7px",
+        display: "flex", flexDirection: "column", gap: 2,
+        overflowY: "auto",
+      }}>
         {NAV
           .filter(item => !item.adminOnly || user?.role === "admin")
-          .map(item => {
-            const Icon = item.icon;
-            const isActive = active === item.id;
-
-            // Scroll-anchor items (Learning Paths, Achievements, Settings, Admin Panel)
-            if (item.scroll) {
-              return (
-                <button key={item.id}
-                  onClick={() => { setActive(item.id); scrollToSection(item.scroll); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: collapsed ? "10px" : "9px 12px",
-                    justifyContent: collapsed ? "center" : "flex-start",
-                    borderRadius: 9,
-                    border: `1px solid ${isActive ? C.green + "30" : "transparent"}`,
-                    background: isActive ? "rgba(110,231,183,0.08)" : "transparent",
-                    color: isActive ? C.green : "#888",
-                    transition: "all 0.2s ease", width: "100%",
-                    textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                  }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = C.text; } }}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888"; } }}>
-                  <Icon size={16} style={{ flexShrink: 0 }} />
-                  {!collapsed && <span style={{ fontSize: 13, fontWeight: isActive ? 500 : 400, whiteSpace: "nowrap" }}>{item.label}</span>}
-                  {!collapsed && isActive && <div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: C.green, boxShadow: `0 0 6px ${C.green}` }} />}
-                </button>
-              );
-            }
-
-            // Regular routed items
-            return (
-              <NavLink key={item.id} to={item.path}
-                style={({ isActive: ra }) => ({
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: collapsed ? "10px" : "9px 12px",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  borderRadius: 9,
-                  border: `1px solid ${ra ? C.green + "30" : "transparent"}`,
-                  background: ra ? "rgba(110,231,183,0.08)" : "transparent",
-                  color: ra ? C.green : "#888",
-                  transition: "all 0.2s ease", width: "100%", textDecoration: "none",
-                })}
-                onMouseEnter={e => { if (!e.currentTarget.classList.contains("active")) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = C.text; } }}
-                onMouseLeave={e => { if (!e.currentTarget.classList.contains("active")) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888"; } }}>
-                {({ isActive: ra }) => (
-                  <>
-                    <Icon size={16} style={{ flexShrink: 0 }} />
-                    {!collapsed && <span style={{ fontSize: 13, fontWeight: ra ? 500 : 400, whiteSpace: "nowrap" }}>{item.label}</span>}
-                    {!collapsed && ra && <div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: C.green, boxShadow: `0 0 6px ${C.green}` }} />}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
+          .map(item => item.scroll
+            ? (
+              <SidebarNavItem
+                key={item.id}
+                item={item}
+                isActive={active === item.id}
+                collapsed={collapsed}
+                onClick={() => { setActive(item.id); scrollToSection(item.scroll); }}
+              />
+            ) : (
+              <SidebarNavLink key={item.id} item={item} collapsed={collapsed} />
+            )
+          )}
       </nav>
 
       {/* User */}
-      <div style={{ padding: "12px 10px", borderTop: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "8px" : "8px 10px", borderRadius: 9, cursor: "pointer", transition: "background 0.2s" }}
+      <div style={{ padding: "9px 7px 13px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: collapsed ? "8px" : "7px 10px",
+            borderRadius: 9, cursor: "pointer",
+            transition: "background 0.18s",
+          }}
           onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-          <div style={{ display: "flex", alignItems: "center", margin: 20, flexShrink: 0 }}>
-            <div
-              title={user.fullName}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: "#6EE7B7",
-                color: "#0A0A0A",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {user.fullName?.charAt(0).toUpperCase()}
-            </div>
+          <div style={{
+            width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+            background: "linear-gradient(135deg, #6EE7B7, #818CF8)",
+            color: "#071A12", fontSize: 12, fontWeight: 800,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }} title={user?.fullName}>
+            {user?.fullName?.charAt(0).toUpperCase()}
           </div>
           {!collapsed && (
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.fullName}</div>
-              <div style={{ fontSize: 11, color: "#555", whiteSpace: "nowrap" }}>Level 4 · Builder</div>
+              <div style={{
+                fontSize: 12, fontWeight: 600, color: "#d0d0d0",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>{user?.fullName}</div>
+              <div style={{ fontSize: 10, color: "#444", marginTop: 1 }}>Builder</div>
             </div>
           )}
         </div>
@@ -521,235 +457,470 @@ function Sidebar({ active, setActive, collapsed, setCollapsed, scrollContainerRe
   );
 }
 
-// ── HEADER ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// HEADER
+// ─────────────────────────────────────────────────────────────────────────────
+
 function Header() {
-  const { user } = useContext(UserContext)
+  const { user } = useContext(UserContext);
   const [notifs] = useState(3);
+  const [searchFocused, setSearchFocused] = useState(false);
+
   return (
     <motion.header
-      initial={{ opacity: 0, y: -12 }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
-      style={{ padding: "20px 32px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 16, background: "rgba(10,10,10,0.5)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 30 }}>
-      <div style={{ flex: 1, maxWidth: 380, position: "relative" }}>
-        <Search size={14} color="#555" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-        <input placeholder="Search projects, paths, modules…"
-          style={{ width: "100%", padding: "9px 12px 9px 34px", background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, borderRadius: 9, color: C.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-          onFocus={e => (e.target.style.borderColor = "rgba(110,231,183,0.3)")}
-          onBlur={e => (e.target.style.borderColor = C.border)} />
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        padding: "14px 28px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", gap: 16,
+        background: "rgba(8,8,8,0.6)",
+        backdropFilter: "blur(28px)",
+        position: "sticky", top: 0, zIndex: 30,
+      }}>
+
+      {/* Search */}
+      <div style={{ flex: 1, maxWidth: 340, position: "relative" }}>
+        <Search size={13} color={searchFocused ? "#6EE7B7" : "#444"}
+          style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.2s" }} />
+        <input
+          placeholder="Search projects, modules…"
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          style={{
+            width: "100%", padding: "8px 12px 8px 34px",
+            background: searchFocused ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.03)",
+            border: `1px solid ${searchFocused ? "rgba(110,231,183,0.25)" : "rgba(255,255,255,0.07)"}`,
+            borderRadius: 9, color: "#d0d0d0", fontSize: 13,
+            outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+            transition: "all 0.2s ease",
+          }}
+        />
       </div>
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Bell */}
         <div style={{ position: "relative" }}>
-          <button style={{ width: 36, height: 36, borderRadius: 9, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s", color: "#888" }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.surfaceHov; e.currentTarget.style.color = C.text; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = "#888"; }}>
-            <Bell size={15} />
+          <button
+            style={{
+              width: 34, height: 34, borderRadius: 9,
+              background: "rgba(255,255,255,0.035)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", transition: "all 0.18s", color: "#666",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "#d0d0d0"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.035)"; e.currentTarget.style.color = "#666"; }}>
+            <Bell size={14} />
           </button>
           {notifs > 0 && (
-            <div style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#0A0A0A", border: "2px solid #0A0A0A" }}>{notifs}</div>
+            <div style={{
+              position: "absolute", top: -3, right: -3,
+              width: 15, height: 15, borderRadius: "50%",
+              background: C.green, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 9, fontWeight: 800, color: "#071A12",
+              border: "2px solid #090909",
+            }}>{notifs}</div>
           )}
         </div>
-        <div
-          title={user.fullName}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "#6EE7B7",
-            color: "#0A0A0A",
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          {user.fullName?.charAt(0).toUpperCase()}
+
+        {/* Avatar */}
+        <div title={user?.fullName} style={{
+          width: 34, height: 34, borderRadius: "50%",
+          background: "linear-gradient(135deg, #6EE7B7, #818CF8)",
+          color: "#071A12", fontSize: 13, fontWeight: 800,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", boxShadow: "0 0 0 2px rgba(110,231,183,0.2)",
+        }}>
+          {user?.fullName?.charAt(0).toUpperCase()}
         </div>
       </div>
     </motion.header>
   );
 }
 
-// ── HERO WELCOME ─────────────────────────────────────────────────────────────
-function WelcomeHero() {
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function WelcomeHero({ stats }) {
   const { user } = useContext(UserContext);
+  const navigate = useNavigate();
+
+  // Find streak from stats array
+  const streakStat = stats?.find(s => s.label?.toLowerCase().includes("streak") || s.suffix === "d");
+  const streak = streakStat?.val ?? 0;
+
   return (
-    <div style={{ padding: "40px 32px 0", position: "relative" }}>
-      <div style={{ position: "absolute", top: 0, left: "30%", width: 400, height: 200, background: `radial-gradient(ellipse, ${C.green}09 0%, transparent 70%)`, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 20, right: "10%", width: 250, height: 150, background: `radial-gradient(ellipse, ${C.indigo}07 0%, transparent 70%)`, pointerEvents: "none" }} />
+    <div style={{ padding: "40px 28px 0", position: "relative" }}>
+      {/* Hero glows */}
+      <div style={{ position: "absolute", top: 0, left: "20%", width: 500, height: 240, background: `radial-gradient(ellipse, ${C.green}08 0%, transparent 70%)`, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 30, right: "8%", width: 280, height: 180, background: `radial-gradient(ellipse, ${C.indigo}06 0%, transparent 70%)`, pointerEvents: "none" }} />
+
       <FadeIn>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "4px 12px", borderRadius: 999, background: "rgba(110,231,183,0.09)", border: "1px solid rgba(110,231,183,0.2)", marginBottom: 14 }}>
-              <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.green, animation: "pulse 2s infinite" }} />
-              <span style={{ fontSize: 11, color: C.green, fontWeight: 500 }}>12-day streak active 🔥</span>
-            </div>
-            <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(28px, 4vw, 44px)", color: "#f0f0f0", letterSpacing: "-0.02em", lineHeight: 1.15, marginBottom: 10 }}>
-              Welcome back, {user.fullName.split(" ")[0]}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+          {/* Left: editorial heading */}
+          <div style={{ flex: "1 1 340px" }}>
+            {streak > 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 999, background: "rgba(110,231,183,0.07)", border: "1px solid rgba(110,231,183,0.16)", marginBottom: 16 }}>
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: C.green, animation: "pulse 2s infinite" }} />
+                <span style={{ fontSize: 11, color: C.green, fontWeight: 500 }}>{streak} day streak active 🔥</span>
+              </div>
+            )}
+            <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(28px, 3.8vw, 46px)", color: "#f0f0f0", letterSpacing: "-0.022em", lineHeight: 1.1, marginBottom: 12 }}>
+              Welcome back,<br />
+              <span style={{ background: `linear-gradient(115deg, #f0f0f0 40%, ${C.green})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                {user?.fullName?.split(" ")[0]}
+              </span>
             </h1>
-            <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.65, maxWidth: 440 }}>
-              Continue your learning journey and ship your next project. You're 75% through AI Chat App.
+            <p style={{ fontSize: 14, color: "#666", lineHeight: 1.7, maxWidth: 400, marginBottom: 22 }}>
+              Keep shipping. Every module completed is a step toward something real.
             </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <PrimaryBtn onClick={() => navigate("/projects")}>
+                <Play size={13} /> Continue Learning
+              </PrimaryBtn>
+              <GhostBtn onClick={() => navigate("/projects")}>
+                <FolderOpen size={13} /> All Projects
+              </GhostBtn>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <PrimaryBtn><Play size={14} /> Continue Learning</PrimaryBtn>
-            <GhostBtn><FolderOpen size={13} /> All Projects</GhostBtn>
-          </div>
+
+          {/* Right: momentum panel */}
+          {stats && stats.length > 0 && (
+            <div style={{ margin: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              {stats.map((m, i) => (
+                <AnalyticTile key={m.label} m={m} i={i} />
+              ))}
+            </div>
+          )}
         </div>
       </FadeIn>
     </div>
   );
 }
 
-// ── STAT CARDS ────────────────────────────────────────────────────────────────
-function StatCard({ stat, i }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// QUICK ACTIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function QuickActions() {
+  const { user } = useContext(UserContext);
+  const navigate = useNavigate();
+
+  const scroll = id => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+  const actions = [
+    { label: "Browse Projects", icon: FolderOpen, color: C.green, onClick: () => navigate("/projects") },
+    { label: "Achievements", icon: Trophy, color: C.indigo, onClick: () => scroll("achievements") },
+    { label: "Settings", icon: Settings, color: C.amber, onClick: () => scroll("settings") },
+    user?.role === "admin"
+      ? { label: "Admin Panel", icon: Shield, color: C.pink, onClick: () => navigate("/admin") }
+      : { label: "Profile", icon: User, color: C.pink, onClick: () => scroll("settings") },
+  ];
+
+  return (
+    <FadeIn>
+      <div className="dash-quick-strip" style={{
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10,
+      }}>
+        {actions.map((a, i) => (
+          <QuickActionBtn key={i} {...a} />
+        ))}
+      </div>
+    </FadeIn>
+  );
+}
+
+function QuickActionBtn({ label, icon: Icon, color, onClick }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      style={{
+        padding: "14px 10px", borderRadius: 12,
+        background: hov ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+        border: `1px solid ${hov ? color + "28" : "rgba(255,255,255,0.07)"}`,
+        backdropFilter: "blur(20px)",
+        cursor: "pointer", textAlign: "center",
+        fontFamily: "inherit", width: "100%",
+        transition: "all 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
+        transform: hov ? "translateY(-2px)" : "translateY(0)",
+        boxShadow: hov ? `0 8px 24px ${color}12` : "none",
+      }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 9,
+        background: hov ? color + "1A" : color + "0E",
+        border: `1px solid ${hov ? color + "30" : color + "16"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        margin: "0 auto 9px",
+        transition: "all 0.22s",
+      }}>
+        <Icon size={14} color={color} />
+      </div>
+      <div style={{
+        fontSize: 11.5, color: hov ? "#b0b0b0" : "#555",
+        fontWeight: 500, transition: "color 0.18s",
+      }}>{label}</div>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALYTICS PANEL (replaces Today's Focus)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AnalyticsPanel({ stats, achievements, projects }) {
+  const completedProjects = projects?.filter(e => e.project?.progress === 100).length ?? 0;
+  const totalProjects = projects?.length ?? 0;
+
+  const projectsStat = stats?.find(s => s.label?.toLowerCase().includes("project"));
+  const achieveStat = stats?.find(s => s.label?.toLowerCase().includes("achieve"));
+
+  const unlockedCount = achievements?.filter(a => a.unlocked).length ?? 0;
+  const totalAchieve = achievements?.length ?? 0;
+  const completedCount = projectsStat?.val ?? 0;
+  const xpVal = completedCount * 85;
+  const xpNext = (Math.floor(completedCount / 3) + 1) * 255;
+  const xpPct = xpNext > 0 ? Math.min(100, Math.round((xpVal / xpNext) * 100)) : 0;
+  // Next locked achievement
+  const nextAchieve = achievements?.find(a => !a.unlocked);
+
+  // Derive level from stats or project count
+  const streakStat = stats?.find(s => s.label?.toLowerCase().includes("streak") || s.suffix === "🔥");
+  const streakVal = streakStat?.val ?? 0;
+  const level = Math.max(1, Math.floor(totalProjects / 2) + 1);
+  const builderScore = Math.min(99, completedProjects * 12 + unlockedCount * 6 + streakVal);
+
+  // Completion pct
+  const completionPct = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
+
+  return (
+    <FadeIn delay={0.06}>
+      <div>
+        <EyebrowLabel>ANALYTICS</EyebrowLabel>
+        <h2 style={{ ...SECTION_HEAD, fontSize: 18, marginBottom: 16 }}>Your progress</h2>
+
+        {/* xp bar */}
+        <Panel elevation={1} style={{ padding: "16px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: "#666" }}>XP Progress</span>
+            <span style={{ fontSize: 11, color: C.green, fontWeight: 600 }}>{xpPct}%</span>
+          </div>
+          <div style={{
+            height: 5, borderRadius: 3,
+            background: "rgba(255,255,255,0.06)", overflow: "hidden",
+          }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${xpPct}%` }}
+              transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
+              style={{
+                height: "100%", borderRadius: 3,
+                background: `linear-gradient(90deg, ${C.green}, #818CF8)`,
+                boxShadow: `0 0 8px ${C.green}50`,
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            <span style={{ fontSize: 10, color: "#444" }}>{xpVal} XP</span>
+            <span style={{ fontSize: 10, color: "#444" }}>{xpNext} XP</span>
+          </div>
+        </Panel>
+
+        {/* Completion bar */}
+        <Panel elevation={1} style={{ padding: "16px 16px" , marginTop:10}}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: 11.5, color: "#666" }}>Project completion</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{completionPct}%</span>
+          </div>
+          <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${completionPct}%` }}
+              transition={{ duration: 1.1, delay: 0.5, ease: "easeOut" }}
+              style={{
+                height: "100%", borderRadius: 2,
+                background: `linear-gradient(90deg, ${C.green}, #818CF8)`,
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+            <span style={{ fontSize: 10, color: "#3a3a3a" }}>{completedProjects} completed</span>
+            <span style={{ fontSize: 10, color: "#3a3a3a" }}>{totalProjects} total</span>
+          </div>
+        </Panel>
+
+        {/* Next achievement preview */}
+        {nextAchieve && (
+          <div style={{ marginTop: 10 }}>
+            <NextAchievementPreview a={nextAchieve} />
+          </div>
+        )}
+      </div>
+    </FadeIn>
+  );
+}
+
+function AnalyticTile({ m, i }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
-  const count = useCountUp(stat.val, inView);
-  const Icon = stat.icon;
+  const count = useCountUp(m.val, inView, 900);
+  const Icon = m.icon;
+  const [hov, handlers] = useHover();
+
   return (
-    <FadeIn delay={i * 0.07}>
-      <Glass hoverAccent={stat.color} style={{ padding: "22px 20px" }}>
-        <div ref={ref} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: stat.color + "14", border: `1px solid ${stat.color}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon size={17} color={stat.color} />
-          </div>
+    <FadeIn delay={i * 0.06}>
+      <div ref={ref} {...handlers}
+        style={{
+          padding: "20px 20px 20px",
+          borderRadius: 12,
+          background: hov ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+          border: `1px solid ${hov ? m.color + "28" : "rgba(255,255,255,0.07)"}`,
+          transition: "all 0.22s",
+          transform: hov ? "translateY(-1px)" : "translateY(0)",
+        }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: m.color + "12", border: `1px solid ${m.color}1E`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          marginBottom:10
+          
+        }}>
+          <Icon size={13} color={m.color} />
         </div>
         <div style={{
           fontFamily: "'Instrument Serif', serif",
-          fontSize: 40,
-          lineHeight: 1,
-          marginBottom: 4,
-          background: `linear-gradient(135deg, #fff 30%, ${stat.color} 100%)`,
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          textAlign: "center",
+          fontSize: 26, lineHeight: 1,
+          color: "#e8e8e8", marginBottom: 4,
+          letterSpacing: "-0.02em",
+          textAlign: "center"
         }}>
-          {count}{stat.suffix}
+          {count}
         </div>
-        <div style={{ fontSize: 12, color: "#666", textAlign: "center" }}>
-          {stat.label}
-        </div>
-      </Glass>
-    </FadeIn>
-  );
-}
-
-// ── CONTINUE LEARNING ─────────────────────────────────────────────────────────
-function ContinueLearning() {
-  const [hov, setHov] = useState(false);
-  return (
-    <FadeIn delay={0.1}>
-      <div style={{ marginBottom: 6 }}>
-        <SectionLabel>CONTINUE WHERE YOU LEFT OFF</SectionLabel>
-        <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 16 }}>Current project</h2>
-      </div>
-      <DashboardCard />
-    </FadeIn>
-  );
-}
-
-// ── PATH CARD (sidebar widget) ────────────────────────────────────────────────
-function PathCard({ p, i }) {
-  const [hov, setHov] = useState(false);
-  const Icon = p.icon;
-  return (
-    <FadeIn delay={i * 0.07}>
-      <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-        style={{
-          padding: "18px", borderRadius: 12,
-          background: hov ? C.surfaceHov : C.surface,
-          border: `1px solid ${hov ? p.color + "30" : C.border}`,
-          backdropFilter: "blur(20px)",
-          transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-          transform: hov ? "translateY(-3px) scale(1.01)" : "translateY(0) scale(1)",
-          boxShadow: hov ? `0 14px 40px ${p.color}10` : "none",
-          cursor: "pointer",
-        }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: p.color + "14", border: `1px solid ${p.color}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon size={16} color={p.color} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.title}</div>
-            <div style={{ fontSize: 11, color: "#555" }}>{p.lessons}/{p.total} lessons</div>
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: p.progress > 0 ? p.color : "#444" }}>{p.progress}%</span>
-        </div>
-        <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: `${p.progress}%` }}
-            transition={{ duration: 1, delay: 0.3 + i * 0.1, ease: "easeOut" }}
-            style={{ height: "100%", background: p.progress > 0 ? p.color : "transparent", borderRadius: 2 }} />
-        </div>
-        {p.progress === 0 && <div style={{ fontSize: 11, color: "#3f3f3f", marginTop: 8 }}>Not started</div>}
+        <div style={{textAlign:"center", fontSize: 10.5, color: "#4a4a4a" }}>{m.label}</div>
       </div>
     </FadeIn>
   );
 }
 
-// ── PROJECT CARDS ─────────────────────────────────────────────────────────────
+function NextAchievementPreview({ a }) {
+  const Icon = a.icon;
+  return (
+    <Panel elevation={1} accent={a.color} style={{ padding: "13px 14px" }}>
+      <p style={{ fontSize: 9.5, color: "#444", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>NEXT MILESTONE</p>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 9,
+          background: a.color + "10", border: `1px solid ${a.color}20`,
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <Lock size={13} color={a.color} />
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#c0c0c0", marginBottom: 2 }}>{a.name}</div>
+          <div style={{ fontSize: 10.5, color: "#484848", lineHeight: 1.4 }}>{a.desc}</div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROJECT CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ProjectCard({ p, i }) {
   const accent = COLORS[p.color] ?? COLORS.green;
-  const [hov, setHov] = useState(false);
+  const [hov, handlers] = useHover();
+
   return (
-    <FadeIn delay={i * 0.07}>
-      <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+    <FadeIn delay={i * 0.06}>
+      <div {...handlers}
         style={{
-          borderRadius: 12, overflow: "hidden",
-          border: hov ? `1px solid ${accent}30` : `1px solid ${C.border}`,
-          background: C.surface, backdropFilter: "blur(20px)",
-          transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-          transform: hov ? "translateY(-4px)" : "translateY(0)",
-          boxShadow: hov ? `0 16px 48px ${accent}10` : "none",
+          borderRadius: 14, overflow: "hidden",
+          border: `1px solid ${hov ? accent + "28" : "rgba(255,255,255,0.07)"}`,
+          background: hov ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.03)",
+          backdropFilter: "blur(24px)",
+          transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
+          transform: hov ? "translateY(-5px)" : "translateY(0)",
+          boxShadow: hov ? `0 20px 52px ${accent}12, 0 4px 16px rgba(0,0,0,0.3)` : "0 2px 12px rgba(0,0,0,0.2)",
           cursor: "pointer",
         }}>
-        <div style={{ height: 100, position: "relative", background: `radial-gradient(ellipse at 40% 60%, ${accent}18 0%, rgba(255,255,255,0.02) 70%)`, borderBottom: `1px solid ${C.border}`, overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-          <motion.div animate={{ scale: hov ? 1.07 : 1 }} transition={{ duration: 0.4 }}
+
+        {/* Visual header */}
+        <div style={{
+          height: 96, position: "relative",
+          background: `radial-gradient(ellipse at 35% 55%, ${accent}1A 0%, transparent 70%)`,
+          borderBottom: `1px solid ${hov ? accent + "18" : "rgba(255,255,255,0.05)"}`,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }} />
+
+          <motion.div
+            animate={{ scale: hov ? 1.07 : 1, y: hov ? -2 : 0 }}
+            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 11, background: accent + "18", border: `1px solid ${accent}35`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Serif', serif", fontSize: 14, color: accent }}>{p.image}</div>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: accent + "16", border: `1px solid ${accent}30`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'Instrument Serif', serif", fontSize: 15, color: accent,
+              boxShadow: hov ? `0 0 20px ${accent}25` : "none",
+              transition: "box-shadow 0.3s",
+            }}>{p.image}</div>
           </motion.div>
-          <div style={{ position: "absolute", bottom: 8, left: 10 }}><DiffBadge d={p.difficulty} /></div>
+
+          <div style={{ position: "absolute", bottom: 7, left: 10 }}><DiffBadge d={p.difficulty} /></div>
           {p.progress === 100 && (
-            <div style={{ position: "absolute", top: 8, right: 8, background: C.green + "20", border: `1px solid ${C.green}35`, borderRadius: 6, padding: "3px 7px", fontSize: 10, color: C.green, fontWeight: 600 }}>✓ Done</div>
+            <div style={{
+              position: "absolute", top: 7, right: 8,
+              background: `${C.green}18`, border: `1px solid ${C.green}30`,
+              borderRadius: 6, padding: "2px 8px", fontSize: 9.5, color: C.green, fontWeight: 700,
+            }}>✓ Done</div>
           )}
         </div>
-        <div style={{ padding: "14px 14px 12px" }}>
-          <h4 style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>{p.name}</h4>
+
+        <div style={{ padding: "15px 15px 13px" }}>
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: "#d8d8d8", marginBottom: 8, lineHeight: 1.3 }}>{p.name}</h4>
+
           {p.progress > 0 && p.progress < 100 && (
             <div style={{ marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 10, color: "#555" }}>Progress</span>
-                <span style={{ fontSize: 10, color: accent }}>{p.progress}%</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontSize: 10, color: "#444" }}>Progress</span>
+                <span style={{ fontSize: 10, color: accent, fontWeight: 600 }}>{p.progress}%</span>
               </div>
-              <div style={{ height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 1, overflow: "hidden" }}>
-                <div style={{ width: `${p.progress}%`, height: "100%", background: accent, borderRadius: 1, transition: "width 1s ease" }} />
+              <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{
+                  width: `${p.progress}%`, height: "100%",
+                  background: `linear-gradient(90deg, ${accent}, ${accent}90)`,
+                  borderRadius: 2, transition: "width 1.1s ease",
+                }} />
               </div>
             </div>
           )}
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-            {(p.stack ?? []).slice(0, 3).map((tech) => (
-              <span
-                key={tech.name}
-                style={{
-                  fontSize: 10,
-                  background: "rgba(255,255,255,0.05)",
-                  color: "#777",
-                  padding: "2px 7px",
-                  borderRadius: 4,
-                }}
-              >
-                {tech.name}
-              </span>
+
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 11 }}>
+            {(p.stack ?? []).slice(0, 3).map(tech => (
+              <span key={tech.name} style={{
+                fontSize: 10, padding: "2px 7px", borderRadius: 4,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                color: "#555",
+              }}>{tech.name}</span>
             ))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Clock size={10} color="#555" />
-            <span style={{ fontSize: 11, color: "#555", flex: 1 }}>{p.duration}</span>
-            <ChevronRight size={13} color={hov ? accent : "#444"} style={{ transition: "color 0.2s" }} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <Clock size={10} color="#3a3a3a" />
+            <span style={{ fontSize: 11, color: "#3a3a3a", flex: 1 }}>{p.duration}</span>
+            <motion.div animate={{ x: hov ? 2 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronRight size={13} color={hov ? accent : "#2e2e2e"} />
+            </motion.div>
           </div>
         </div>
       </div>
@@ -757,330 +928,257 @@ function ProjectCard({ p, i }) {
   );
 }
 
-// ── ACTIVITY FEED ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVITY FEED
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ActivityFeed({ activity }) {
+  if (!activity || activity.length === 0) {
+    return (
+      <FadeIn>
+        <EyebrowLabel>ACTIVITY</EyebrowLabel>
+        <h2 style={{ ...SECTION_HEAD, fontSize: 18, marginBottom: 14 }}>Recent activity</h2>
+        <EmptyState icon={Zap} color={C.amber} title="No activity yet" body="Your actions appear here as you build." />
+      </FadeIn>
+    );
+  }
+
   return (
-    <FadeIn delay={0.1}>
+    <FadeIn delay={0.08}>
       <div>
-        <SectionLabel>ACTIVITY</SectionLabel>
-        <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 18 }}>Recent activity</h2>
-        <Glass style={{ padding: "8px 0" }}>
+        <EyebrowLabel>ACTIVITY</EyebrowLabel>
+        <h2 style={{ ...SECTION_HEAD, fontSize: 18, marginBottom: 14 }}>Recent activity</h2>
+        <Panel elevation={1} style={{ padding: "4px 0" }}>
           {activity.map((a, i) => {
             const Icon = a.icon;
             return (
-              <FadeIn key={i} delay={i * 0.06}>
-                <div style={{ display: "flex", gap: 12, padding: "13px 18px", position: "relative" }}>
-                  {i < activity.length - 1 && (
-                    <div style={{ position: "absolute", left: 28, top: 46, bottom: -12, width: 1, background: "linear-gradient(to bottom, rgba(255,255,255,0.08), transparent)" }} />
-                  )}
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: a.color + "14", border: `1px solid ${a.color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", zIndex: 1, boxShadow: `0 0 12px ${a.color}15` }}>
-                    <Icon size={13} color={a.color} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                      <div>
-                        <span style={{ fontSize: 11, color: a.color, fontWeight: 600, display: "block", marginBottom: 2 }}>{a.label}</span>
-                        <span style={{ fontSize: 13, color: C.text, lineHeight: 1.4 }}>{a.text}</span>
-                      </div>
-                      <span style={{ fontSize: 11, color: "#444", whiteSpace: "nowrap", flexShrink: 0 }}>{a.time}</span>
+              <div key={i} style={{ display: "flex", gap: 12, padding: "12px 18px", position: "relative" }}>
+                {i < activity.length - 1 && (
+                  <div style={{
+                    position: "absolute", left: 27, top: 44, bottom: -10, width: 1,
+                    background: "linear-gradient(to bottom, rgba(255,255,255,0.05), transparent)",
+                  }} />
+                )}
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: a.color + "12", border: `1px solid ${a.color}22`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0, position: "relative", zIndex: 1,
+                }}>
+                  <Icon size={12} color={a.color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div>
+                      <span style={{ fontSize: 10.5, color: a.color, fontWeight: 600, display: "block", marginBottom: 2 }}>{a.label}</span>
+                      <span style={{ fontSize: 12.5, color: "#8a8a8a", lineHeight: 1.45 }}>{a.text}</span>
                     </div>
+                    <span style={{ fontSize: 10, color: "#383838", whiteSpace: "nowrap", flexShrink: 0 }}>{a.time}</span>
                   </div>
                 </div>
-              </FadeIn>
+              </div>
             );
           })}
-        </Glass>
+        </Panel>
       </div>
     </FadeIn>
   );
 }
 
-// ── ACHIEVEMENTS SECTION ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ACHIEVEMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
 function AchievementsSection({ achievements }) {
   return (
-    <FadeIn delay={0.1}>
+    <FadeIn delay={0.06}>
       <div id="achievements">
-        <SectionLabel>MILESTONES</SectionLabel>
-        <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 18 }}>Achievements</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-          {achievements.map((a, i) => {
-            const Icon = a.icon;
-            return (
-              <FadeIn key={i} delay={i * 0.05}>
-                <div
-                  style={{ padding: "16px 14px", borderRadius: 12, border: `1px solid ${a.unlocked ? a.color + "28" : C.border}`, background: a.unlocked ? a.color + "07" : C.surface, backdropFilter: "blur(20px)", opacity: a.unlocked ? 1 : 0.45, cursor: "pointer", transition: "all 0.25s ease", textAlign: "center" }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 32px ${a.color}12`; e.currentTarget.style.opacity = "1"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.opacity = a.unlocked ? "1" : "0.45"; }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 11, background: a.unlocked ? a.color + "18" : "rgba(255,255,255,0.04)", border: `1px solid ${a.unlocked ? a.color + "35" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: a.unlocked ? `0 0 16px ${a.color}15` : "none" }}>
-                    {a.unlocked ? <Icon size={18} color={a.color} /> : <Lock size={16} color="#444" />}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: a.unlocked ? C.text : "#444", marginBottom: 4 }}>{a.name}</div>
-                  <div style={{ fontSize: 10, color: "#444", lineHeight: 1.4 }}>{a.desc}</div>
-                </div>
-              </FadeIn>
-            );
-          })}
+        <div style={{ marginBottom: 18 }}>
+          <EyebrowLabel>MILESTONES</EyebrowLabel>
+          <h2 style={SECTION_HEAD}>Achievements</h2>
         </div>
+        {!achievements || achievements.length === 0 ? (
+          <EmptyState icon={Trophy} color={C.indigo} title="No achievements yet" body="Complete projects and hit milestones to earn badges." />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+            {achievements.map((a, i) => <AchievementTile key={i} a={a} i={i} />)}
+          </div>
+        )}
       </div>
     </FadeIn>
   );
 }
 
-// ── LEARNING PATHS SECTION ────────────────────────────────────────────────────
-function LearningPathsSection({ paths }) {
+function AchievementTile({ a, i }) {
+  const Icon = a.icon;
+  const [hov, handlers] = useHover();
   return (
-    <FadeIn delay={0.05}>
-      <div id="learning-paths">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-          <div>
-            <SectionLabel>PATHS</SectionLabel>
-            <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 4 }}>Learning paths</h2>
-            <p style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>Structured tracks built for shipping, not just watching.</p>
-          </div>
-          <GhostBtn style={{ fontSize: 12, padding: "6px 12px" }}>Browse all <ArrowRight size={12} /></GhostBtn>
+    <FadeIn delay={i * 0.04}>
+      <div {...handlers}
+        style={{
+          padding: "17px 13px", borderRadius: 13, textAlign: "center",
+          border: `1px solid ${a.unlocked ? a.color + "22" : "rgba(255,255,255,0.06)"}`,
+          background: a.unlocked ? a.color + "06" : "rgba(255,255,255,0.02)",
+          backdropFilter: "blur(20px)",
+          opacity: a.unlocked ? 1 : hov ? 0.7 : 0.38,
+          cursor: "pointer",
+          transition: "all 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
+          transform: hov ? "translateY(-3px)" : "translateY(0)",
+          boxShadow: hov && a.unlocked ? `0 12px 32px ${a.color}12` : "none",
+        }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 11,
+          background: a.unlocked ? a.color + "16" : "rgba(255,255,255,0.03)",
+          border: `1px solid ${a.unlocked ? a.color + "28" : "rgba(255,255,255,0.06)"}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 11px",
+          boxShadow: a.unlocked && hov ? `0 0 18px ${a.color}20` : "none",
+          transition: "box-shadow 0.25s",
+        }}>
+          {a.unlocked ? <Icon size={17} color={a.color} /> : <Lock size={14} color="#2e2e2e" />}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
-          {paths.map((p, i) => {
-            const Icon = p.icon;
-            const [hov, setHov] = useState(false);
-            return (
-              <FadeIn key={p.title} delay={i * 0.07}>
-                <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-                  style={{
-                    padding: "22px 20px", borderRadius: 14,
-                    background: hov ? C.surfaceHov : C.surface,
-                    border: `1px solid ${hov ? p.color + "30" : C.border}`,
-                    backdropFilter: "blur(20px)",
-                    transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-                    transform: hov ? "translateY(-3px)" : "translateY(0)",
-                    boxShadow: hov ? `0 16px 48px ${p.color}12` : "none",
-                    cursor: "pointer",
-                  }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 11, background: p.color + "14", border: `1px solid ${p.color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon size={18} color={p.color} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 3 }}>{p.title}</div>
-                      <div style={{ fontSize: 11, color: "#555" }}>{p.lessons} of {p.total} lessons complete</div>
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: p.progress > 0 ? p.color : "#333", flexShrink: 0 }}>{p.progress}%</span>
-                  </div>
-                  <p style={{ fontSize: 12, color: "#555", lineHeight: 1.65, marginBottom: 16 }}>{p.desc}</p>
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${p.progress}%` }}
-                        transition={{ duration: 1.1, delay: 0.3 + i * 0.1, ease: "easeOut" }}
-                        style={{ height: "100%", background: p.progress > 0 ? `linear-gradient(90deg, ${p.color}, ${p.color}99)` : "transparent", borderRadius: 2 }} />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    {p.progress === 0 ? (
-                      <span style={{ fontSize: 11, color: "#3a3a3a" }}>Not started yet</span>
-                    ) : p.progress === 100 ? (
-                      <span style={{ fontSize: 11, color: C.green, display: "flex", alignItems: "center", gap: 4 }}><Check size={11} /> Completed</span>
-                    ) : (
-                      <span style={{ fontSize: 11, color: C.amber }}>{p.total - p.lessons} lessons remaining</span>
-                    )}
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: hov ? p.color : "#444", transition: "color 0.2s" }}>
-                      {p.progress === 0 ? "Start path" : p.progress === 100 ? "Review" : "Continue"}
-                      <ChevronRight size={12} />
-                    </div>
-                  </div>
-                </div>
-              </FadeIn>
-            );
-          })}
-        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: a.unlocked ? "#c8c8c8" : "#383838", marginBottom: 4, lineHeight: 1.3 }}>{a.name}</div>
+        <div style={{ fontSize: 10, color: "#363636", lineHeight: 1.4 }}>{a.desc}</div>
       </div>
     </FadeIn>
   );
 }
 
-// ── QUICK ACTIONS ─────────────────────────────────────────────────────────────
-function QuickActions() {
-  const actions = [
-    { label: "Browse Projects", icon: FolderOpen, color: C.green },
-    { label: "View Paths", icon: Map, color: C.indigo },
-    { label: "Community", icon: Sparkles, color: C.amber },
-    { label: "My Profile", icon: User, color: C.pink },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-      {actions.map((a, i) => {
-        const Icon = a.icon;
-        return (
-          <div key={i} style={{ padding: "14px 12px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, backdropFilter: "blur(20px)", cursor: "pointer", transition: "all 0.25s ease", textAlign: "center" }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.surfaceHov; e.currentTarget.style.borderColor = a.color + "30"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: a.color + "12", border: `1px solid ${a.color}22`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
-              <Icon size={15} color={a.color} />
-            </div>
-            <div style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>{a.label}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// [Settings Section] — all cards below share the existing Glass, PrimaryBtn,
-// GhostBtn, DangerBtn primitives and labelStyle / inputStyle tokens.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Thin horizontal rule reusing existing border token
-function Divider() {
-  return <div style={{ height: 1, background: C.border, margin: "20px 0" }} />;
-}
-
-// Read-only info row used inside Account Settings
 function InfoRow({ label, value }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${C.border}` }}>
-      <span style={{ fontSize: 12, color: C.muted }}>{label}</span>
-      <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{value}</span>
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "11px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
+    }}>
+      <span style={{ fontSize: 12, color: "#4a4a4a" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "#a0a0a0", fontWeight: 500 }}>{value}</span>
     </div>
   );
 }
 
-// [Profile Information Card]
+function SettingsSection({ user }) {
+  return (
+    <FadeIn delay={0.04}>
+      <div id="settings">
+        <div style={{ marginBottom: 24 }}>
+          <EyebrowLabel>PREFERENCES</EyebrowLabel>
+          <h2 style={{ ...SECTION_HEAD, marginBottom: 5 }}>Settings</h2>
+          <p style={{ fontSize: 13, color: "#484848", lineHeight: 1.6 }}>Manage your profile, preferences, and account security.</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <FadeIn delay={0.04}><ProfileCard /></FadeIn>
+          <FadeIn delay={0.07}><LearningPreferencesCard /></FadeIn>
+          <FadeIn delay={0.10}><AccountSettingsCard user={user} /></FadeIn>
+          <FadeIn delay={0.13}><ProgressSettingsCard /></FadeIn>
+        </div>
+      </div>
+    </FadeIn>
+  );
+}
+
 function ProfileCard() {
-  const { user } = useContext(UserContext)
+  const { user } = useContext(UserContext);
   const [form, setForm] = useState({
-    name: user?.fullName,
-    email: user?.email,
+    name: user?.fullName ?? "",
+    email: user?.email ?? "",
     bio: "Full-stack learner building real products.",
     college: "VIT VELLORE",
     github: "https://github.com/debjit",
     linkedin: "https://linkedin.com/in/debjit",
   });
   const [saved, setSaved] = useState(false);
-
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
-  }
+  function handleSave() { setSaved(true); setTimeout(() => setSaved(false), 2200); }
 
   return (
-    <Glass style={{ padding: "28px 26px" }}>
-      {/* Card header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: C.green + "14", border: `1px solid ${C.green}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <User size={15} color={C.green} />
+    <Panel elevation={1} style={{ padding: "26px 24px" }}>
+      <SettingsCardHeader icon={User} color={C.green} title="Profile Information" sub="Update your public profile details" />
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+          background: "linear-gradient(135deg, #6EE7B7, #818CF8)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 18, fontWeight: 800, color: "#071A12",
+          boxShadow: "0 0 0 3px rgba(110,231,183,0.15)",
+        }}>
+          {user?.fullName?.charAt(0).toUpperCase()}
         </div>
         <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Profile Information</h3>
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Update your public profile details</p>
+          <p style={{ fontSize: 12, color: "#a0a0a0", fontWeight: 500, marginBottom: 4 }}>Profile Picture</p>
+          <p style={{ fontSize: 11, color: "#4a4a4a", marginBottom: 8 }}>JPG, PNG or GIF · Max 2 MB</p>
+          <GhostBtn style={{ fontSize: 11, padding: "5px 12px" }}><Camera size={12} /> Upload photo</GhostBtn>
         </div>
       </div>
-
-      {/* Avatar row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #6EE7B7, #818CF8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#0A0A0A", flexShrink: 0 }}>D</div>
-        <div>
-          <p style={{ fontSize: 12, color: C.text, fontWeight: 500, marginBottom: 4 }}>Profile Picture</p>
-          <p style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>JPG, PNG or GIF · Max 2 MB</p>
-          <GhostBtn style={{ fontSize: 11, padding: "5px 12px" }}>
-            <Camera size={12} /> Upload photo
-          </GhostBtn>
-        </div>
-      </div>
-
-      {/* Form fields — 2 column grid, some spanning full width */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {[
           { key: "name", label: "Full Name", type: "text", placeholder: "Your name" },
           { key: "email", label: "Email Address", type: "email", placeholder: "you@example.com" },
           { key: "college", label: "College / University", type: "text", placeholder: "Your institution" },
           { key: "bio", label: "Bio", type: "text", placeholder: "A short bio…", full: true },
-          { key: "github", label: "GitHub Profile URL", type: "url", placeholder: "https://github.com/…", full: true },
-          { key: "linkedin", label: "LinkedIn Profile URL", type: "url", placeholder: "https://linkedin.com/…", full: true },
+          { key: "github", label: "GitHub URL", type: "url", placeholder: "https://github.com/…", full: true },
+          { key: "linkedin", label: "LinkedIn URL", type: "url", placeholder: "https://linkedin.com/…", full: true },
         ].map(({ key, label, type, placeholder, full }) => (
           <div key={key} style={{ gridColumn: full ? "1 / -1" : undefined }}>
             <label style={labelStyle}>{label}</label>
-            <input
-              type={type}
-              value={form[key]}
+            <input type={type} value={form[key]} placeholder={placeholder}
               onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-              placeholder={placeholder}
               style={inputStyle}
-              onFocus={e => (e.target.style.borderColor = "rgba(110,231,183,0.35)")}
-              onBlur={e => (e.target.style.borderColor = C.border)}
+              onFocus={e => (e.target.style.borderColor = "rgba(110,231,183,0.32)")}
+              onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}
             />
           </div>
         ))}
       </div>
-
-      <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12 }}>
-        <PrimaryBtn onClick={handleSave}>
-          {saved ? <><Check size={13} /> Saved!</> : "Update Profile"}
-        </PrimaryBtn>
-        {saved && <span style={{ fontSize: 12, color: C.green }}>Changes saved successfully.</span>}
+      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
+        <PrimaryBtn onClick={handleSave}>{saved ? <><Check size={13} /> Saved!</> : "Update Profile"}</PrimaryBtn>
+        {saved && <span style={{ fontSize: 12, color: C.green }}>Changes saved.</span>}
       </div>
-    </Glass>
+    </Panel>
   );
 }
 
-// [Learning Preferences Card]
 function LearningPreferencesCard() {
   const [prefs, setPrefs] = useState({ career: "Full Stack Developer", skill: "Intermediate" });
   const [saved, setSaved] = useState(false);
-
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
-  }
-
   const skillColors = { Beginner: C.green, Intermediate: C.amber, Advanced: C.indigo };
+  function handleSave() { setSaved(true); setTimeout(() => setSaved(false), 2200); }
 
   return (
-    <Glass style={{ padding: "28px 26px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: C.indigo + "22", border: `1px solid ${C.indigo}35`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <BookOpenCheck size={15} color={C.indigo} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Learning Preferences</h3>
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Personalise your learning experience</p>
-        </div>
-      </div>
-
+    <Panel elevation={1} style={{ padding: "26px 24px" }}>
+      <SettingsCardHeader icon={BookOpenCheck} color={C.indigo} title="Project Preferences" sub="Personalise your experience" />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Career path select */}
         <div>
-          <label style={labelStyle}>Preferred Career Path</label>
+          <label style={labelStyle}>Career Path</label>
           <div style={{ position: "relative" }}>
-            <select
-              value={prefs.career}
-              onChange={e => setPrefs(p => ({ ...p, career: e.target.value }))}
-              style={{ ...inputStyle, appearance: "none", cursor: "pointer", color: C.text }}
+            <select value={prefs.career} onChange={e => setPrefs(p => ({ ...p, career: e.target.value }))}
+              style={{ ...inputStyle, appearance: "none", cursor: "pointer", color: "#d0d0d0" }}
               onFocus={e => (e.target.style.borderColor = "rgba(129,140,248,0.4)")}
-              onBlur={e => (e.target.style.borderColor = C.border)}>
+              onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}>
               {["Frontend Developer", "Full Stack Developer", "Java Developer", "AI / ML Engineer"].map(o => (
-                <option key={o} value={o} style={{ background: "#1a1a1a" }}>{o}</option>
+                <option key={o} value={o}>{o}</option>
               ))}
             </select>
-            <ChevronRight size={12} color="#555" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none" }} />
+            <ChevronRight size={11} color="#444" style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%) rotate(90deg)", pointerEvents: "none" }} />
           </div>
         </div>
-
-        {/* Skill level toggle */}
         <div>
           <label style={labelStyle}>Skill Level</label>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 7 }}>
             {["Beginner", "Intermediate", "Advanced"].map(lvl => {
-              const active = prefs.skill === lvl;
+              const isActive = prefs.skill === lvl;
               const col = skillColors[lvl];
               return (
                 <button key={lvl} onClick={() => setPrefs(p => ({ ...p, skill: lvl }))}
                   style={{
                     flex: 1, padding: "8px 4px", borderRadius: 8, fontSize: 11,
-                    fontWeight: active ? 600 : 400,
-                    background: active ? col + "16" : "transparent",
-                    border: `1px solid ${active ? col + "40" : C.border}`,
-                    color: active ? col : "#666",
-                    cursor: "pointer", transition: "all 0.2s", fontFamily: "inherit",
+                    fontWeight: isActive ? 600 : 400,
+                    background: isActive ? col + "14" : "transparent",
+                    border: `1px solid ${isActive ? col + "38" : "rgba(255,255,255,0.07)"}`,
+                    color: isActive ? col : "#4a4a4a",
+                    cursor: "pointer", transition: "all 0.18s", fontFamily: "inherit",
                   }}>
                   {lvl}
                 </button>
@@ -1089,156 +1187,368 @@ function LearningPreferencesCard() {
           </div>
         </div>
       </div>
-
-      <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12 }}>
-        <PrimaryBtn onClick={handleSave}>
-          {saved ? <><Check size={13} /> Saved!</> : "Save Preferences"}
-        </PrimaryBtn>
+      <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
+        <PrimaryBtn onClick={handleSave}>{saved ? <><Check size={13} /> Saved!</> : "Save Preferences"}</PrimaryBtn>
         {saved && <span style={{ fontSize: 12, color: C.green }}>Preferences updated.</span>}
       </div>
-    </Glass>
+    </Panel>
   );
 }
 
-// [Account Settings Card]
 function AccountSettingsCard() {
-  const { user, setUser } = useContext(UserContext)
+  const { user, setUser } = useContext(UserContext);
   const [showConfirm, setShowConfirm] = useState(false);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
-    try {
-      await api.post("/api/v1/users/logout", {});
-    } catch (error) {
-      console.error(error);
-    } finally {
+    try { await api.post("/api/v1/users/logout", {}); } catch (e) { console.error(e); }
+    finally {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
-
-      setUser(null);
-      navigate("/");
+      setUser(null); navigate("/");
     }
   };
 
   return (
-    <Glass style={{ padding: "28px 26px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: C.amber + "18", border: `1px solid ${C.amber}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <KeyRound size={15} color={C.amber} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Account Settings</h3>
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Manage your account security</p>
-        </div>
-      </div>
-
+    <Panel elevation={1} style={{ padding: "26px 24px" }}>
+      <SettingsCardHeader icon={KeyRound} color={C.amber} title="Account Settings" sub="Manage your account security" />
       <InfoRow label="Email Address" value={user?.email} />
       <InfoRow label="Account Role" value={user?.role === "admin" ? "Administrator" : "User"} />
-
-      <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 10 }}>
         <GhostBtn><KeyRound size={13} /> Change Password</GhostBtn>
         <GhostBtn onClick={handleLogout}><User size={13} /> Logout</GhostBtn>
-
-        {/* Delete account — shows inline confirmation step first */}
         {!showConfirm ? (
-          <DangerBtn onClick={() => setShowConfirm(true)}>
-            <Trash2 size={13} /> Delete Account
-          </DangerBtn>
+          <DangerBtn onClick={() => setShowConfirm(true)}><Trash2 size={13} /> Delete Account</DangerBtn>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)", width: "100%" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "9px 14px", borderRadius: 9, width: "100%",
+            border: "1px solid rgba(239,68,68,0.28)",
+            background: "rgba(239,68,68,0.05)",
+          }}>
             <span style={{ fontSize: 12, color: "#FCA5A5", flex: 1 }}>This action is irreversible. Are you sure?</span>
             <DangerBtn style={{ padding: "5px 12px", fontSize: 12 }}>Yes, delete</DangerBtn>
             <GhostBtn onClick={() => setShowConfirm(false)} style={{ padding: "5px 12px", fontSize: 12 }}>Cancel</GhostBtn>
           </div>
         )}
       </div>
-    </Glass>
+    </Panel>
   );
 }
 
-// [Progress Settings Card]
 function ProgressSettingsCard() {
-  const [resetPath, setResetPath] = useState(false);
-  const [resetAchv, setResetAchv] = useState(false);
+  const [done, setDone] = useState(false);
+  function handleReset() { setDone(true); setTimeout(() => setDone(false), 2500); }
 
-  function handleReset(type) {
-    if (type === "path") { setResetPath(true); setTimeout(() => setResetPath(false), 2500); }
-    if (type === "achv") { setResetAchv(true); setTimeout(() => setResetAchv(false), 2500); }
+  return (
+    <Panel elevation={1} style={{ padding: "26px 24px" }}>
+      <SettingsCardHeader icon={RotateCcw} color={C.pink} title="Progress Settings" sub="Reset your tracked progress" />
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px", borderRadius: 11,
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "#c0c0c0", marginBottom: 3 }}>Reset Achievement Progress</p>
+          <p style={{ fontSize: 11, color: "#484848" }}>Removes all earned badges and milestone data.</p>
+        </div>
+        {done
+          ? <span style={{ fontSize: 11, color: C.green, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}><Check size={12} /> Done</span>
+          : <DangerBtn onClick={handleReset} style={{ padding: "7px 14px", fontSize: 12, whiteSpace: "nowrap" }}><RotateCcw size={12} /> Reset</DangerBtn>}
+      </div>
+    </Panel>
+  );
+}
+
+// Shared settings card header
+function SettingsCardHeader({ icon: Icon, color, title, sub }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+        background: color + "12", border: `1px solid ${color}22`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon size={14} color={color} />
+      </div>
+      <div>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: "#d0d0d0" }}>{title}</h3>
+        <p style={{ fontSize: 11, color: "#484848", marginTop: 2 }}>{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const { user, loading } = useContext(UserContext);
+  const [active, setActive] = useState("home");
+  const [collapsed, setCollapsed] = useState(false);
+  const scrollContainerRef = useRef(null);
+  const [data, setData] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => { getDashboardSummary().then(setData); }, []);
+
+  if (loading) return <Loader size="lg" text="Authenticating..." fullScreen />;
+  if (!data) return null;
+
+  // paths destructured but intentionally not rendered
+  const { stats, paths, projects, activity, achievements } = data;
+
+  if (!user) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#090909", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          style={{ textAlign: "center", maxWidth: 360, padding: 40 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14, margin: "0 auto 24px",
+            background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.14)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Shield size={20} color="rgba(239,68,68,0.65)" />
+          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: "#f0f0f0", marginBottom: 10 }}>Access Required</h1>
+          <p style={{ color: "#3a3a3a", fontSize: 14, marginBottom: 24, lineHeight: 1.65 }}>
+            Sign in to access your dashboard, projects, achievements and progress.
+          </p>
+          <a href="/login" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "9px 20px", borderRadius: 9,
+            background: `linear-gradient(135deg, ${C.green}, #55C49A)`,
+            color: "#071A12", fontSize: 13, fontWeight: 700, textDecoration: "none",
+          }}>
+            <ChevronLeft size={14} strokeWidth={2.5} /> Log in
+          </a>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
-    <Glass style={{ padding: "28px 26px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: C.pink + "18", border: `1px solid ${C.pink}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <RotateCcw size={15} color={C.pink} />
-        </div>
-        <div>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Progress Settings</h3>
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Reset your tracked progress</p>
-        </div>
+    <div style={{
+      minHeight: "100vh", background: "#090909",
+      color: "#d0d0d0", fontFamily: "'DM Sans', sans-serif",
+      display: "flex",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: #090909; }
+        ::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 2px; }
+        @keyframes pulseGreen {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(110,231,183,0.4); }
+          50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(110,231,183,0); }
+        }
+        input::placeholder { color: #333; }
+        input, select, button { box-sizing: border-box; }
+        select option { background: #111; color: #d0d0d0; }
+        @media (max-width: 960px) {
+          .dash-two-col { grid-template-columns: 1fr !important; }
+          .dash-hero-panel { max-width: 100% !important; }
+          .dash-quick-strip { grid-template-columns: repeat(2, 1fr) !important; }
+          .dash-projects-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; }
+        }
+        @media (max-width: 600px) {
+          .dash-main-pad { padding: 22px 16px 0 !important; }
+          .dash-projects-grid { grid-template-columns: 1fr !important; }
+          .dash-quick-strip { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
+
+      {/* Global ambient layer */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)",
+          backgroundSize: "64px 64px", opacity: 0.5,
+        }} />
+        <div style={{ position: "absolute", top: "0%", left: "20%", width: 700, height: 500, background: `radial-gradient(ellipse, ${C.green}08 0%, transparent 65%)` }} />
+        <div style={{ position: "absolute", top: "45%", right: "2%", width: 500, height: 400, background: `radial-gradient(ellipse, ${C.indigo}07 0%, transparent 65%)` }} />
+        <div style={{ position: "absolute", bottom: "5%", left: "35%", width: 400, height: 250, background: `radial-gradient(ellipse, ${C.amber}05 0%, transparent 70%)` }} />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {[
-          {
-            type: "path", title: "Reset Learning Path Progress",
-            desc: "Clears all lesson completions and path progress.",
-            done: resetPath, handler: () => handleReset("path"),
-          },
-          {
-            type: "achv", title: "Reset Achievement Progress",
-            desc: "Removes all earned badges and milestone data.",
-            done: resetAchv, handler: () => handleReset("achv"),
-          },
-        ].map(({ type, title, desc, done, handler }) => (
-          <div key={type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid ${C.border}` }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 3 }}>{title}</p>
-              <p style={{ fontSize: 11, color: C.muted }}>{desc}</p>
+      <Sidebar
+        active={active} setActive={setActive}
+        collapsed={collapsed} setCollapsed={setCollapsed}
+        scrollContainerRef={scrollContainerRef}
+      />
+
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative" }}>
+        <div style={{ position: "relative", zIndex: 20 }}>
+          <Header />
+        </div>
+
+        <div
+          ref={scrollContainerRef}
+          style={{ flex: 1, overflowY: "auto", position: "relative", zIndex: 10, maxHeight: "calc(100vh - 63px)" }}>
+
+          {/* HERO */}
+          <WelcomeHero stats={stats} />
+
+          {/* MAIN CONTENT */}
+          <div className="dash-main-pad" style={{ padding: "38px 32px 0" }}>
+
+            {/* Quick actions */}
+            <div style={{ marginBottom: 38 }}>
+              <QuickActions />
             </div>
-            {done
-              ? <span style={{ fontSize: 11, color: C.green, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}><Check size={12} /> Reset done</span>
-              : <DangerBtn onClick={handler} style={{ padding: "7px 14px", fontSize: 12, whiteSpace: "nowrap" }}>
-                <RotateCcw size={12} /> Reset
-              </DangerBtn>
-            }
+
+            {/* Two-col layout */}
+            <div className="dash-two-col" style={{
+              display: "grid", gridTemplateColumns: "1fr 330px",
+              gap: 28, alignItems: "start", marginBottom: 48,
+            }}>
+
+              {/* ─── Primary column ─── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+
+                {/* CONTINUE BUILDING — dominant section */}
+                <section style={{ marginBottom: 44 }}>
+                  <FadeIn style={{ marginBottom: 18 }}>
+                    <EyebrowLabel>CONTINUE WHERE YOU LEFT OFF</EyebrowLabel>
+                    <h2 style={{ ...SECTION_HEAD, fontSize: 24 }}>Current project</h2>
+                  </FadeIn>
+                  {/* Wrap DashboardCard in a subtle elevated shell */}
+                  <div style={{
+                    borderRadius: 16, overflow: "hidden",
+                    boxShadow: `0 0 0 1px rgba(255,255,255,0.07), 0 16px 48px rgba(0,0,0,0.35), 0 0 80px ${C.green}06`,
+                  }}>
+                    <DashboardCard />
+                  </div>
+                </section>
+
+                <SectionDivider />
+
+                {/* PROJECTS */}
+                <section style={{ marginBottom: 44 }}>
+                  <FadeIn style={{ marginBottom: 18 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10 }}>
+                      <div>
+                        <EyebrowLabel>PROJECTS</EyebrowLabel>
+                        <h2 style={SECTION_HEAD}>My projects</h2>
+                      </div>
+                      <GhostBtn onClick={() => navigate("/projects")} style={{ fontSize: 12, padding: "6px 14px" }}>
+                        View all <ArrowRight size={12} />
+                      </GhostBtn>
+                    </div>
+                  </FadeIn>
+                  {projects.length === 0 ? (
+                    <EmptyState icon={FolderOpen} color={C.green} title="No projects yet"
+                      body="Browse available projects and enroll to get started."
+                      action={<PrimaryBtn onClick={() => navigate("/projects")}><FolderOpen size={13} /> Browse Projects</PrimaryBtn>} />
+                  ) : (
+                    <div className="dash-projects-grid" style={{
+                      display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 14,
+                    }}>
+                      {projects.map((e, i) => <ProjectCard key={e._id} p={e.project} i={i} />)}
+                    </div>
+                  )}
+                </section>
+
+                <SectionDivider />
+
+                {/* ACHIEVEMENTS */}
+                <section style={{ marginBottom: 44 }}>
+                  <AchievementsSection achievements={achievements} />
+                </section>
+
+                <SectionDivider />
+
+                {/* SETTINGS */}
+                <section style={{ marginBottom: 44 }}>
+                  <SettingsSection user={user} />
+                </section>
+              </div>
+
+              {/* ─── Insight rail ─── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "sticky", top: 24 }}>
+
+                {/* Analytics */}
+                <AnalyticsPanel stats={stats} achievements={achievements} projects={projects} />
+
+                <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+
+                {/* Activity */}
+                <ActivityFeed activity={activity} />
+
+                <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+
+                {/* Ship CTA */}
+                <FadeIn delay={0.12}>
+                  <div style={{
+                    borderRadius: 14, padding: "22px 18px", textAlign: "center",
+                    border: `1px solid rgba(110,231,183,0.12)`,
+                    background: "rgba(110,231,183,0.02)",
+                    position: "relative", overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: "50%", left: "50%",
+                      transform: "translate(-50%,-50%)",
+                      width: "160%", height: "160%",
+                      background: `radial-gradient(ellipse, ${C.green}07 0%, transparent 60%)`,
+                      pointerEvents: "none",
+                    }} />
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: 10,
+                        background: `${C.green}10`, border: `1px solid ${C.green}22`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        margin: "0 auto 12px",
+                      }}>
+                        <Rocket size={16} color={C.green} />
+                      </div>
+                      <div style={{
+                        fontFamily: "'Instrument Serif', serif", fontSize: 16,
+                        color: "#d8d8d8", marginBottom: 7, letterSpacing: "-0.01em",
+                      }}>Ready to build?</div>
+                      <p style={{ fontSize: 11.5, color: "#484848", marginBottom: 16, lineHeight: 1.65 }}>
+                        Pick your next project and start shipping something real.
+                      </p>
+                      <PrimaryBtn onClick={() => navigate("/projects")} style={{ width: "100%", justifyContent: "center" }}>
+                        <FolderOpen size={13} /> Browse Projects
+                      </PrimaryBtn>
+                    </div>
+                  </div>
+                </FadeIn>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
-    </Glass>
-  );
-}
 
-// [Admin Controls Card]
-// Conditionally rendered — only when user?.role === "admin".
-// To integrate with real auth: replace `user` with useAuth() context value.
-
-// [Settings Section] — anchor wrapper + stacked cards
-function SettingsSection({ user }) {
-  return (
-    <FadeIn delay={0.05}>
-      <div id="settings">
-        {/* Section heading */}
-        <div style={{ marginBottom: 22 }}>
-          <SectionLabel>PREFERENCES</SectionLabel>
-          <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, color: "#f0f0f0", letterSpacing: "-0.015em", marginBottom: 4 }}>Settings</h2>
-          <p style={{ fontSize: 13, color: C.muted }}>Manage your profile, learning preferences, and account security.</p>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* [Profile Information Card] */}
-          <FadeIn delay={0.05}><ProfileCard /></FadeIn>
-
-          {/* [Learning Preferences Card] */}
-          <FadeIn delay={0.08}><LearningPreferencesCard /></FadeIn>
-
-          {/* [Account Settings Card] */}
-          <FadeIn delay={0.11}><AccountSettingsCard user={user} /></FadeIn>
-
-          {/* [Progress Settings Card] */}
-          <FadeIn delay={0.14}><ProgressSettingsCard /></FadeIn>
-
+          {/* Footer */}
+          <footer style={{
+            padding: "20px 32px", borderTop: "1px solid rgba(255,255,255,0.05)",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            flexWrap: "wrap", gap: 12,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 5,
+                background: "linear-gradient(135deg, #6EE7B7, #818CF8)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Hammer size={10} color="#071A12" />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#888" }}>BuildWise</span>
+            </div>
+            <span style={{ fontSize: 11, color: "#2a2a2a" }}>© 2025 BuildWise. All rights reserved.</span>
+            <div style={{ display: "flex", gap: 16 }}>
+              {["Help", "Privacy", "Status"].map(l => (
+                <span key={l} style={{ fontSize: 11, color: "#2e2e2e", cursor: "pointer", transition: "color 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#2e2e2e")}>{l}</span>
+              ))}
+            </div>
+          </footer>
         </div>
       </div>
-    </FadeIn>
+    </div>
   );
 }

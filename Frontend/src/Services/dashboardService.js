@@ -30,7 +30,8 @@ import {
 export const getUserStats = async () => {
   const statsRes = await api.get("/api/v1/dashboard/get-UserStats")
 
-  const stats = statsRes?.data?.data?.userStats
+  const stats = statsRes?.data?.data
+
 
   const dashboardStats = [
     {
@@ -73,8 +74,6 @@ export const getUserProjects = async () => {
   const projectsRes = await api.get("/api/v1/dashboard/get-UserProjects")
 
   const userProjects=projectsRes?.data?.data
-
-  console.log(userProjects)
 
   return userProjects;
 };

@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Enrollment } from "../models/enrollment.model.js";
 import { Project } from "../models/projects.model.js";
 import { User } from "../models/user.model.js";
+import { updateDayStreak } from "../utils/updateDayStreak.js";
 
 
 const enrollUser = asyncHandler(async (req, res) => {
@@ -82,7 +83,7 @@ const completedModules = asyncHandler(async (req, res) => {
             new: true
         }
     );
-
+    await updateDayStreak(req.user._id);
     const user = await User.findById(req.user._id).select("userStats.xp")
     const xp = user.userStats.xp+100
 

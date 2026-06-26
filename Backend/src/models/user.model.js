@@ -8,6 +8,11 @@ const userStatsSchema = new Schema({
     value: { type: Number, default: 0 },
   },
 
+  lastActiveDate: {
+    type: Date,
+    default: null,
+  },
+
   projectsShipped: {
     value: { type: Number, default: 0 },
   },
@@ -22,8 +27,8 @@ const userStatsSchema = new Schema({
 
   xp: {
     type: Number,
-    default: 0
-  }
+    default: 0,
+  },
 });
 
 
