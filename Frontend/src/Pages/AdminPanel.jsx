@@ -1,16 +1,15 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import Loader from "../Components/Loader";
 import { UserContext } from "../Context/UserContext";
 import axios from "axios";
 import {
-  LayoutDashboard, Users, FolderOpen, BookOpen, Trophy, Settings,
+  LayoutDashboard, Users, FolderOpen, Trophy, Settings,
   Bell, Activity, Shield, Plus, Search, Edit2, Trash2,
   Eye, X, Check, AlertTriangle, TrendingUp, Zap,
   Database, Cpu, Globe, BarChart2, RefreshCw,
   UserCheck, UserX, ChevronRight, ChevronLeft, ArrowUpRight,
-  Layers, CheckCircle, MoreHorizontal, Menu,
+  CheckCircle, Menu, Hammer, Layers,
 } from "lucide-react";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -21,20 +20,1610 @@ import {
   getAdminDashboardSummary,
   getAdminProjects,
   getAdminUsers,
-  getAdminLearningPaths,
   getAdminAchievements,
 } from "../Services/adminService";
-import { COLORS, FONTS } from "../Constants/theme";
 import ProjectBuilderDrawer from "./ProjectBuilderDrawer";
 
-// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
-// Mint accent: #6ee7b7 / emerald-300  (primary accent, matches Dashboard)
-// Surfaces:    #0a0a0a base · #111318 card · #0d0f14 card-alt
-// Borders:     white/5 default · white/10 hover
-// Text:        white full · white/60 secondary · white/35 muted · white/20 faint
+// ─── DESIGN TOKENS (mirrors Dashboard / theme.js) ─────────────────────────────
+const C = {
+  green: "#6EE7B7",
+  indigo: "#818CF8",
+  amber: "#FCD34D",
+  pink: "#F472B6",
+  bg: "#090909",
+};
+
+const EASE = [0.22, 1, 0.36, 1];
+
+const SECTION_HEAD = {
+  fontFamily: "'Instrument Serif', serif",
+  fontSize: 22, color: "#f2f2f2",
+  letterSpacing: "-0.018em", lineHeight: 1.2,
+  margin: 0,
+};
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "projects", label: "Projects", icon: FolderOpen },
+  { id: "users", label: "Users", icon: Users },
+  { id: "analytics", label: "Analytics", icon: BarChart2 },
+  { id: "moderation", label: "Moderation", icon: Shield },
+  { id: "achievements", label: "Achievements", icon: Trophy },
+  { id: "settings", label: "Settings", icon: Settings },
+  { id: "activity", label: "Activity", icon: Activity },
+];
+
+// ─── HOOKS ────────────────────────────────────────────────────────────────────
+function useHover() {
+  const [hov, setHov] = useState(false);
+  return [hov, { onMouseEnter: () => setHov(true), onMouseLeave: () => setHov(false) }];
+}
+
+// ─── ANIMATION PRIMITIVES ─────────────────────────────────────────────────────
+function FadeIn({ children, delay = 0, y = 16, style = {} }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-30px" });
+  return (
+    <motion.div ref={ref}
+      initial={{ opacity: 0, y }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.55, delay, ease: EASE }}
+      style={style}>
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── PANEL (glass surface, three elevations) ──────────────────────────────────
+function Panel({ children, style = {}, elevation = 1, accent, onClick }) {
+  const [hov, handlers] = useHover();
+  const bases = ["rgba(255,255,255,0.025)", "rgba(255,255,255,0.04)", "rgba(255,255,255,0.065)"];
+  const hovBg = ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.06)", "rgba(255,255,255,0.09)"];
+  const shadows = ["none", "0 2px 16px rgba(0,0,0,0.3)", "0 8px 32px rgba(0,0,0,0.4)"];
+  return (
+    <div {...(onClick ? { onClick, ...handlers } : handlers)}
+      style={{
+        background: hov && onClick ? hovBg[elevation] : bases[elevation],
+        border: `1px solid ${hov && accent ? accent + "28" : "rgba(255,255,255,0.07)"}`,
+        backdropFilter: "blur(24px)",
+        borderRadius: 16,
+        boxShadow: hov && accent
+          ? `${shadows[elevation]}, 0 0 40px ${accent}0a`
+          : shadows[elevation],
+        transition: "all 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+        transform: hov && onClick ? "translateY(-2px)" : "translateY(0)",
+        cursor: onClick ? "pointer" : "default",
+        ...style,
+      }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── BUTTON PRIMITIVES ────────────────────────────────────────────────────────
+function PrimaryBtn({ children, onClick, style = {}, icon: Icon }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 7,
+        padding: "8px 16px",
+        background: hov
+          ? `linear-gradient(135deg, #7EEFC0, ${C.green})`
+          : `linear-gradient(135deg, ${C.green}, #55C49A)`,
+        color: "#071A12", fontWeight: 700, fontSize: 12,
+        borderRadius: 9, border: "none", cursor: "pointer",
+        transition: "all 0.22s cubic-bezier(0.22, 1, 0.36, 1)",
+        transform: hov ? "translateY(-1px)" : "translateY(0)",
+        boxShadow: hov ? `0 8px 24px ${C.green}30` : `0 2px 8px ${C.green}18`,
+        letterSpacing: "-0.01em", fontFamily: "inherit", ...style,
+      }}>
+      {Icon && <Icon size={12} />}
+      {children}
+    </button>
+  );
+}
+
+function GhostBtn({ children, onClick, style = {}, icon: Icon }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "7px 14px",
+        background: hov ? "rgba(255,255,255,0.06)" : "transparent",
+        color: hov ? "#d0d0d0" : "#666", fontSize: 12, fontWeight: 400,
+        borderRadius: 9,
+        border: `1px solid ${hov ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)"}`,
+        cursor: "pointer", transition: "all 0.2s ease", fontFamily: "inherit", ...style,
+      }}>
+      {Icon && <Icon size={11} />}
+      {children}
+    </button>
+  );
+}
+
+function DangerBtn({ children, onClick, style = {}, icon: Icon }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "7px 14px",
+        background: hov ? "rgba(239,68,68,0.1)" : "transparent",
+        color: hov ? "#FCA5A5" : "#555", fontSize: 12, fontWeight: 400,
+        borderRadius: 9,
+        border: `1px solid ${hov ? "rgba(239,68,68,0.32)" : "rgba(255,255,255,0.08)"}`,
+        cursor: "pointer", transition: "all 0.2s ease", fontFamily: "inherit", ...style,
+      }}>
+      {Icon && <Icon size={11} />}
+      {children}
+    </button>
+  );
+}
+
+// ─── EYEBROW LABEL ────────────────────────────────────────────────────────────
+function EyebrowLabel({ children }) {
+  return (
+    <p style={{
+      fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase",
+      color: C.green, fontWeight: 600, marginBottom: 5, margin: "0 0 5px",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      {children}
+    </p>
+  );
+}
+
+function SectionDivider() {
+  return (
+    <div style={{
+      height: 1,
+      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent)",
+      margin: "0 0 32px",
+    }} />
+  );
+}
+
+// ─── COUNTER ──────────────────────────────────────────────────────────────────
+function Counter({ target }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let v = 0;
+    const step = Math.ceil((target || 0) / 55);
+    const t = setInterval(() => {
+      v += step;
+      if (v >= target) { setCount(target); clearInterval(t); }
+      else setCount(v);
+    }, 16);
+    return () => clearInterval(t);
+  }, [target]);
+  return <>{count.toLocaleString()}</>;
+}
+
+// ─── SEARCH BAR ───────────────────────────────────────────────────────────────
+function SearchInput({ value, onChange, placeholder }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ position: "relative", flex: 1 }}>
+      <Search size={13} color={focused ? C.green : "#444"}
+        style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.2s" }} />
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder || "Search…"}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: "100%", padding: "8px 12px 8px 34px",
+          background: focused ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.03)",
+          border: `1px solid ${focused ? `${C.green}40` : "rgba(255,255,255,0.07)"}`,
+          borderRadius: 9, color: "#d0d0d0", fontSize: 13,
+          outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+          transition: "all 0.2s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── BADGE ────────────────────────────────────────────────────────────────────
+function Badge({ label, type = "neutral" }) {
+  const map = {
+    Beginner: { bg: `${C.green}14`, color: C.green },
+    Intermediate: { bg: `${C.indigo}14`, color: C.indigo },
+    Advanced: { bg: "#ef444414", color: "#FCA5A5" },
+    admin: { bg: "#f472b614", color: C.pink },
+    moderator: { bg: `${C.indigo}14`, color: C.indigo },
+    user: { bg: "rgba(255,255,255,0.06)", color: "#888" },
+    published: { bg: `${C.green}14`, color: C.green },
+    Draft: { bg: "rgba(255,255,255,0.06)", color: "#777" },
+    Review: { bg: `${C.amber}12`, color: C.amber },
+    neutral: { bg: "rgba(255,255,255,0.06)", color: "#777" },
+  };
+  const s = map[label] || map.neutral;
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, padding: "3px 8px",
+      borderRadius: 6, background: s.bg, color: s.color,
+      letterSpacing: "0.04em", whiteSpace: "nowrap",
+    }}>{label}</span>
+  );
+}
+
+// ─── CUSTOM TOOLTIP ───────────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: "#0d0f14",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: "8px 12px", fontSize: 12,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+      backdropFilter: "blur(12px)",
+    }}>
+      <p style={{ fontWeight: 500, color: "rgba(255,255,255,0.45)", marginBottom: 4, fontSize: 11 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: C.green, margin: 0, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>
+          {p.name}: {p.value?.toLocaleString()}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
+function NotificationPanel({ open, onClose, notifications = [] }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={onClose} />
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            style={{
+              position: "absolute", right: 0, top: 48, zIndex: 50,
+              width: 280, borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.09)",
+              background: "#0d0f14",
+              boxShadow: "0 16px 48px rgba(0,0,0,0.7)",
+              overflow: "hidden",
+            }}>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>Notifications</span>
+              <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex" }}
+                onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
+                onMouseLeave={e => e.currentTarget.style.color = "#555"}>
+                <X size={13} />
+              </button>
+            </div>
+            {notifications.map((n) => (
+              <div key={n.id} style={{
+                padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                transition: "background 0.15s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.025)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>{n.message}</p>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 3 }}>{n.time}</p>
+              </div>
+            ))}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function Sidebar({ active, onSelect, collapsed, onToggle, user }) {
+  return (
+    <motion.aside
+      initial={{ x: -24, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: EASE }}
+      style={{
+        width: collapsed ? 64 : 216, flexShrink: 0,
+        height: "100vh", position: "sticky", top: 0,
+        display: "flex", flexDirection: "column",
+        background: "rgba(8,8,8,0.88)",
+        backdropFilter: "blur(32px)",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        transition: "width 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
+        zIndex: 40, overflow: "hidden",
+      }}>
+
+      {/* Logo */}
+      <div style={{
+        padding: "16px 13px 14px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: "linear-gradient(135deg, #6EE7B7 0%, #818CF8 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: `0 2px 10px ${C.green}25`,
+        }}>
+          <Hammer size={13} color="#071A12" />
+        </div>
+        {!collapsed && (
+          <motion.span
+            initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.08 }}
+            style={{ fontWeight: 700, fontSize: 14, letterSpacing: "-0.025em", color: "#fff", whiteSpace: "nowrap" }}>
+            BuildWise
+          </motion.span>
+        )}
+        {!collapsed && (
+          <button onClick={onToggle}
+            style={{
+              marginLeft: "auto", background: "none", border: "none",
+              cursor: "pointer", color: "#444", display: "flex",
+              flexShrink: 0, padding: 4, borderRadius: 6, transition: "color 0.18s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#999")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#444")}>
+            <Menu size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Admin badge */}
+      {!collapsed && (
+        <div style={{ padding: "8px 13px 6px" }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 5,
+            fontSize: 10, fontWeight: 600, letterSpacing: "0.08em",
+            color: C.green, background: `${C.green}10`,
+            border: `1px solid ${C.green}20`,
+            borderRadius: 6, padding: "3px 8px",
+          }}>
+            <Shield size={9} strokeWidth={2.5} />
+            ADMIN PANEL
+          </span>
+        </div>
+      )}
+
+      {/* Nav */}
+      <nav style={{
+        flex: 1, padding: "8px 7px",
+        display: "flex", flexDirection: "column", gap: 2,
+        overflowY: "auto",
+      }}>
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+          const isActive = active === id;
+          return (
+            <SidebarNavItem key={id} id={id} label={label} Icon={Icon}
+              isActive={isActive} collapsed={collapsed} onClick={() => onSelect(id)} />
+          );
+        })}
+      </nav>
+
+      {/* Collapsed toggle */}
+      {collapsed && (
+        <div style={{ padding: "8px 7px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <button onClick={onToggle}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "8px", background: "none", border: "none", cursor: "pointer",
+              color: "#444", borderRadius: 8, transition: "color 0.18s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = "#999"}
+            onMouseLeave={e => e.currentTarget.style.color = "#444"}>
+            <Menu size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* User */}
+      <div style={{ padding: "9px 7px 13px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: collapsed ? "8px" : "7px 10px",
+          borderRadius: 9, cursor: "pointer", transition: "background 0.18s",
+        }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+          <div style={{
+            width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+            background: `linear-gradient(135deg, ${C.green}, ${C.indigo})`,
+            color: "#071A12", fontSize: 12, fontWeight: 800,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {user?.fullName?.[0]?.toUpperCase()}
+          </div>
+          {!collapsed && (
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: 12, fontWeight: 600, color: "#d0d0d0",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>{user?.fullName}</div>
+              <div style={{ fontSize: 10, color: "#444", marginTop: 1 }}>Administrator</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
+
+function SidebarNavItem({ id, label, Icon, isActive, collapsed, onClick }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      title={collapsed ? label : undefined}
+      style={{
+        display: "flex", alignItems: "center",
+        gap: collapsed ? 0 : 10,
+        padding: collapsed ? "10px" : "8px 11px",
+        justifyContent: collapsed ? "center" : "flex-start",
+        borderRadius: 9,
+        border: `1px solid ${isActive ? `${C.green}28` : "transparent"}`,
+        background: isActive ? `${C.green}0C` : hov ? "rgba(255,255,255,0.04)" : "transparent",
+        color: isActive ? C.green : hov ? "#c8c8c8" : "#666",
+        transition: "all 0.18s ease", width: "100%", textAlign: "left",
+        cursor: "pointer", fontFamily: "inherit",
+      }}>
+      <Icon size={15} style={{ flexShrink: 0 }} />
+      {!collapsed && (
+        <span style={{ fontSize: 13, fontWeight: isActive ? 500 : 400, whiteSpace: "nowrap" }}>
+          {label}
+        </span>
+      )}
+      {!collapsed && isActive && (
+        <div style={{
+          marginLeft: "auto", width: 5, height: 5, borderRadius: "50%",
+          background: C.green, boxShadow: `0 0 7px ${C.green}`,
+        }} />
+      )}
+    </button>
+  );
+}
+
+// ─── HEADER ───────────────────────────────────────────────────────────────────
+function Header({ section, user, notifications, onAddProject, onGoUsers, onNotifToggle, showNotifs, onNotifClose }) {
+  const label = NAV_ITEMS.find(n => n.id === section)?.label || "Overview";
+  const today = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  return (
+    <motion.header
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42, ease: EASE }}
+      style={{
+        padding: "13px 28px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", gap: 16,
+        background: "rgba(8,8,8,0.7)",
+        backdropFilter: "blur(28px)",
+        position: "sticky", top: 0, zIndex: 30,
+      }}>
+
+      {/* Page title */}
+      <div style={{ flex: 1 }}>
+        <h1 style={{
+          fontFamily: "'Instrument Serif', serif",
+          fontSize: 18, color: "#f2f2f2",
+          letterSpacing: "-0.018em", margin: 0,
+        }}>{label}</h1>
+        <p style={{ fontSize: 11, color: "#3a3a3a", marginTop: 2 }}>{today}</p>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <PrimaryBtn onClick={onAddProject} icon={Plus}>Add Project</PrimaryBtn>
+        <GhostBtn onClick={onGoUsers} icon={Users}>Manage Users</GhostBtn>
+
+        {/* Notif bell */}
+        <div style={{ position: "relative" }}>
+          <button onClick={onNotifToggle}
+            style={{
+              position: "relative", padding: 8, borderRadius: 9,
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "transparent", cursor: "pointer",
+              color: "rgba(255,255,255,0.5)", display: "flex",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}>
+            <Bell size={15} />
+            {notifications.length > 0 && (
+              <span style={{
+                position: "absolute", top: -4, right: -4,
+                width: 16, height: 16, borderRadius: "50%",
+                background: C.green, color: "#071A12",
+                fontSize: 9, fontWeight: 800,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          <NotificationPanel open={showNotifs} onClose={onNotifClose} notifications={notifications} />
+        </div>
+
+        {/* Avatar */}
+        <div style={{
+          width: 32, height: 32, borderRadius: "50%",
+          background: `linear-gradient(135deg, ${C.green}, ${C.indigo})`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 800, color: "#071A12", flexShrink: 0,
+        }}>
+          {user?.fullName?.[0]?.toUpperCase() || "A"}
+        </div>
+      </div>
+    </motion.header>
+  );
+}
+
+// ─── STAT CARD ────────────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, delay = 0, accent }) {
+  const [hov, handlers] = useHover();
+  const col = accent || C.green;
+  return (
+    <FadeIn delay={delay}>
+      <div {...handlers}
+        style={{
+          padding: "20px 18px",
+          background: hov ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.035)",
+          border: `1px solid ${hov ? col + "28" : "rgba(255,255,255,0.07)"}`,
+          borderRadius: 14,
+          boxShadow: hov ? `0 8px 32px rgba(0,0,0,0.35), 0 0 40px ${col}08` : "0 2px 16px rgba(0,0,0,0.2)",
+          transition: "all 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+          transform: hov ? "translateY(-2px)" : "translateY(0)",
+          cursor: "default",
+        }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: col + "12", border: `1px solid ${col}22`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <Icon size={14} color={col} />
+          </div>
+          <ArrowUpRight size={12} color="rgba(255,255,255,0.15)" />
+        </div>
+        <p style={{
+          fontFamily: "'DM Mono', monospace", fontSize: 26, fontWeight: 600,
+          color: "#f2f2f2", letterSpacing: "-0.03em", lineHeight: 1, margin: 0,
+        }}>
+          <Counter target={typeof value === "number" ? value : 0} />
+        </p>
+        <p style={{ fontSize: 11.5, color: "#555", marginTop: 6 }}>{label}</p>
+      </div>
+    </FadeIn>
+  );
+}
+
+// ─── SECTION HEADER ───────────────────────────────────────────────────────────
+function SectionHeader({ eyebrow, title, subtitle, action }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20 }}>
+      <div>
+        {eyebrow && <EyebrowLabel>{eyebrow}</EyebrowLabel>}
+        <h2 style={{ ...SECTION_HEAD, fontSize: 19 }}>{title}</h2>
+        {subtitle && <p style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ─── FILTER PILLS ─────────────────────────────────────────────────────────────
+function FilterPill({ label, active, onClick }) {
+  const [hov, handlers] = useHover();
+  return (
+    <button onClick={onClick} {...handlers}
+      style={{
+        padding: "6px 13px", fontSize: 11.5, fontWeight: active ? 600 : 400,
+        borderRadius: 8, border: `1px solid ${active ? C.green + "40" : "rgba(255,255,255,0.08)"}`,
+        background: active ? `${C.green}10` : hov ? "rgba(255,255,255,0.04)" : "transparent",
+        color: active ? C.green : hov ? "#c0c0c0" : "#666",
+        cursor: "pointer", transition: "all 0.18s ease", fontFamily: "inherit",
+      }}>
+      {label}
+    </button>
+  );
+}
+
+// ─── PAGINATION ───────────────────────────────────────────────────────────────
+function Pagination({ page, totalPages, setPage }) {
+  if (totalPages <= 1) return null;
+
+  // Build page number list with ellipsis: [1, ..., 4, 5, 6, ..., 20]
+  const getPages = () => {
+    const delta = 1; // pages on each side of current
+    const pages = [];
+    const left = page - delta;
+    const right = page + delta;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= left && i <= right)) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== "...") {
+        pages.push("...");
+      }
+    }
+    return pages;
+  };
+
+  const btnBase = {
+    minWidth: 28, height: 28, borderRadius: 8, fontSize: 12,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "transparent", color: "#555",
+    cursor: "pointer", transition: "all 0.15s",
+    fontFamily: "inherit", display: "flex",
+    alignItems: "center", justifyContent: "center",
+    padding: "0 6px",
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "18px 0 4px", flexWrap: "wrap" }}>
+      {/* Prev */}
+      <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+        style={{ ...btnBase, opacity: page === 1 ? 0.3 : 1, cursor: page === 1 ? "not-allowed" : "pointer" }}>
+        <ChevronLeft size={13} />
+      </button>
+
+      {getPages().map((p, i) =>
+        p === "..." ? (
+          <span key={`ellipsis-${i}`} style={{ fontSize: 12, color: "#3a3a3a", padding: "0 4px" }}>…</span>
+        ) : (
+          <button key={p} onClick={() => setPage(p)}
+            style={{
+              ...btnBase,
+              fontWeight: page === p ? 700 : 400,
+              border: `1px solid ${page === p ? C.green : "rgba(255,255,255,0.08)"}`,
+              background: page === p ? C.green : "transparent",
+              color: page === p ? "#071A12" : "#555",
+            }}>
+            {p}
+          </button>
+        )
+      )}
+
+      {/* Next */}
+      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+        style={{ ...btnBase, opacity: page === totalPages ? 0.3 : 1, cursor: page === totalPages ? "not-allowed" : "pointer" }}>
+        <ChevronRight size={13} />
+      </button>
+
+      {/* Jump to page input for large sets */}
+      {totalPages > 10 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+          <span style={{ fontSize: 11, color: "#3a3a3a" }}>Go to</span>
+          <input
+            type="number" min={1} max={totalPages}
+            defaultValue={page}
+            key={page}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                const val = Math.min(totalPages, Math.max(1, Number(e.target.value)));
+                setPage(val);
+              }
+            }}
+            style={{
+              width: 44, height: 28, borderRadius: 8, fontSize: 12,
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.04)", color: "#d0d0d0",
+              textAlign: "center", outline: "none", fontFamily: "inherit",
+            }}
+          />
+          <span style={{ fontSize: 11, color: "#3a3a3a" }}>of {totalPages}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ACHIEVEMENT MODAL ────────────────────────────────────────────────────────
+function AchievementModal({ onClose, initial = null, onSave }) {
+  const [form, setForm] = useState(initial || { name: "", description: "", icon: "🏆", xp: 100 });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const inputStyle = {
+    width: "100%", padding: "9px 12px",
+    background: "rgba(255,255,255,0.035)",
+    border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 9, color: "#e5e5e5", fontSize: 13,
+    outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+    transition: "border-color 0.2s",
+  };
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+        transition={{ duration: 0.22, ease: EASE }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 440,
+          borderRadius: 18, border: "1px solid rgba(255,255,255,0.09)",
+          background: "#0d0f14", boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+        }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <h3 style={{ ...SECTION_HEAD, fontSize: 16 }}>{initial ? "Edit Achievement" : "Create Achievement"}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", borderRadius: 6, padding: 4 }}
+            onMouseEnter={e => e.currentTarget.style.color = "#bbb"}
+            onMouseLeave={e => e.currentTarget.style.color = "#555"}>
+            <X size={14} />
+          </button>
+        </div>
+        <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {[
+            { label: "Achievement Name", key: "name", placeholder: "Stack Master" },
+            { label: "Description", key: "description", placeholder: "Use 5+ tech stacks" },
+            { label: "Badge Icon (emoji)", key: "icon", placeholder: "🏆" },
+          ].map(({ label, key, placeholder }) => (
+            <div key={key}>
+              <label style={{ fontSize: 10.5, color: "#555", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500, marginBottom: 6, display: "block" }}>{label}</label>
+              <input value={form[key]} onChange={e => set(key, e.target.value)} placeholder={placeholder} style={inputStyle}
+                onFocus={e => e.target.style.borderColor = C.green + "60"}
+                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+            </div>
+          ))}
+          <div>
+            <label style={{ fontSize: 10.5, color: "#555", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500, marginBottom: 6, display: "block" }}>XP Reward</label>
+            <input type="number" value={form.xp} onChange={e => set("xp", Number(e.target.value))} placeholder="100" style={inputStyle}
+              onFocus={e => e.target.style.borderColor = C.green + "60"}
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.07)"} />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "14px 22px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <GhostBtn onClick={onClose} icon={X}>Cancel</GhostBtn>
+          <PrimaryBtn onClick={() => { onSave(form); onClose(); }} icon={Check}>Save Achievement</PrimaryBtn>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── SECTIONS ─────────────────────────────────────────────────────────────────
+
+function ProjectManagement({ projects, setProjects, totalProjects, totalPages, page, setPage, search, setSearch, filter, setFilter, onAddProject, onEditProject }) {
+  const removeProject = async (id) => {
+    try {
+      await axios.delete(`${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`);
+      setProjects(prev => prev.filter(x => x._id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <FadeIn>
+      <Panel style={{ overflow: "hidden" }}>
+        <div style={{ padding: "22px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <SectionHeader
+            eyebrow="MANAGE"
+            title="Projects"
+            subtitle={`${totalProjects} total projects`}
+            action={<PrimaryBtn onClick={onAddProject} icon={Plus}>Add Project</PrimaryBtn>}
+          />
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <SearchInput value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search projects…" />
+            <div style={{ display: "flex", gap: 6 }}>
+              {["All", "Beginner", "Intermediate", "Advanced"].map(f => (
+                <FilterPill key={f} label={f} active={filter === f} onClick={() => { setFilter(f); setPage(1); }} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ overflowX: "auto", padding: "0 24px 8px" }}>
+          <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                {["Project Name", "Category", "Difficulty", "Tech Stack", "Status", "Created", "Actions"].map(h => (
+                  <th key={h} style={{ textAlign: "left", fontSize: 10, color: "#444", fontWeight: 500, padding: "12px 12px 10px 0", whiteSpace: "nowrap", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <AnimatePresence>
+                {projects.map((p, i) => (
+                  <motion.tr key={p._id}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.018)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ padding: "11px 12px 11px 0", color: "rgba(255,255,255,0.85)", fontWeight: 500, whiteSpace: "nowrap" }}>{p.name}</td>
+                    <td style={{ padding: "11px 12px 11px 0", color: "#555", whiteSpace: "nowrap", fontSize: 12 }}>{p.category}</td>
+                    <td style={{ padding: "11px 12px 11px 0", whiteSpace: "nowrap" }}><Badge label={p.difficulty} /></td>
+                    <td style={{ padding: "11px 12px 11px 0" }}>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {p.stack?.map(t => (
+                          <span key={t.name} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 5, background: "rgba(255,255,255,0.04)", color: "#666", border: "1px solid rgba(255,255,255,0.06)" }}>{t.name}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td style={{ padding: "11px 12px 11px 0", whiteSpace: "nowrap" }}><Badge label={p.status} /></td>
+                    <td style={{ padding: "11px 12px 11px 0", color: "#3a3a3a", fontSize: 11, whiteSpace: "nowrap" }}>{p.createdAt}</td>
+                    <td style={{ padding: "11px 0" }}>
+                      <div style={{ display: "flex", gap: 4, opacity: 0 }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                        onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                        ref={el => {
+                          if (el) {
+                            const row = el.closest("tr");
+                            if (row) {
+                              row.addEventListener("mouseenter", () => el.style.opacity = 1);
+                              row.addEventListener("mouseleave", () => el.style.opacity = 0);
+                            }
+                          }
+                        }}>
+                        <GhostBtn icon={Eye} onClick={() => window.open(`/projectdetails/${p.slug}`, "_blank")}>View</GhostBtn>
+                        <GhostBtn icon={Edit2} onClick={() => onEditProject(p)}>Edit</GhostBtn>
+                        <DangerBtn icon={Trash2} onClick={() => removeProject(p._id)}>Del</DangerBtn>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </tbody>
+          </table>
+          {projects.length === 0 && (
+            <p style={{ padding: "40px 0", textAlign: "center", color: "#444", fontSize: 13 }}>No projects match your search.</p>
+          )}
+        </div>
+        <div style={{ padding: "0 24px 20px" }}>
+          <Pagination page={page} totalPages={totalPages} setPage={setPage} />
+        </div>
+      </Panel>
+    </FadeIn>
+  );
+}
+
+function UserManagement({ users, setUsers, totalUsers, totalPages, page, setPage, search, setSearch, filter, setFilter, fetchUsers }) {
+  const promote = async (id) => { await updateUserRole(id, "admin"); fetchUsers(); };
+  const demote = async (id) => { await updateUserRole(id, "user"); fetchUsers(); };
+  const remove = (id) => setUsers(u => u.filter(x => x._id !== id));
+
+  return (
+    <FadeIn>
+      <Panel style={{ padding: "22px 24px" }}>
+        <SectionHeader eyebrow="MANAGE" title="Users" subtitle={`${totalUsers} registered users`} />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+          <SearchInput value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search users…" />
+          <div style={{ display: "flex", gap: 6 }}>
+            {["All", "admin", "user"].map(r => (
+              <FilterPill key={r} label={r} active={filter === r} onClick={() => { setFilter(r); setPage(1); }} />
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <AnimatePresence>
+            {users.map((u, i) => (
+              <motion.div key={u._id}
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                transition={{ delay: i * 0.04, ease: EASE }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  flexWrap: "wrap", gap: 12,
+                  padding: "12px 14px", borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  background: "rgba(255,255,255,0.02)", transition: "border-color 0.2s, background 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.035)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: `linear-gradient(135deg, ${C.green}18, ${C.indigo}18)`,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", flexShrink: 0,
+                  }}>
+                    {u.fullName?.[0]}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.85)", margin: 0 }}>{u.fullName}</p>
+                    <p style={{ fontSize: 11, color: "#555", margin: "2px 0 0" }}>{u.username} · {u.email}</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <Badge label={u.role} />
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {u.role !== "admin"
+                      ? <GhostBtn icon={UserCheck} onClick={() => promote(u._id)}>Promote</GhostBtn>
+                      : <GhostBtn icon={UserX} onClick={() => demote(u._id)}>Demote</GhostBtn>
+                    }
+                    <DangerBtn icon={Trash2} onClick={() => remove(u._id)}>Delete</DangerBtn>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {users.length === 0 && (
+            <p style={{ padding: "36px 0", textAlign: "center", color: "#444", fontSize: 13 }}>No users found</p>
+          )}
+        </div>
+        <Pagination page={page} totalPages={totalPages} setPage={setPage} />
+      </Panel>
+    </FadeIn>
+  );
+}
+
+// ─── EMPTY CHART PLACEHOLDER ──────────────────────────────────────────────────
+function ChartEmpty({ label }) {
+  return (
+    <div style={{
+      height: 200, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 8,
+    }}>
+      <BarChart2 size={20} color="#2a2a2a" />
+      <p style={{ fontSize: 11, color: "#333", margin: 0 }}>No {label} data yet</p>
+    </div>
+  );
+}
+
+// ─── ANALYTICS SECTION ────────────────────────────────────────────────────────
+function AnalyticsSection({ chartUserGrowth = [], chartProjectCompletions = [], chartWeeklyEnrollments = [] }) {
+
+  // ── Derived KPIs from real chart data ──
+  // Total users = sum of all monthly signups (backend sends per-month counts, not cumulative)
+  const totalUsersFromChart = chartUserGrowth.reduce((s, m) => s + (m.users ?? 0), 0);
+
+  // Month-over-month growth % (last two months)
+  const momGrowth = (() => {
+    if (chartUserGrowth.length < 2) return null;
+    const prev = chartUserGrowth[chartUserGrowth.length - 2]?.users ?? 0;
+    const curr = chartUserGrowth[chartUserGrowth.length - 1]?.users ?? 0;
+    if (!prev) return null;
+    return (((curr - prev) / prev) * 100).toFixed(1);
+  })();
+
+  // Top project by completions
+  const topProject = chartProjectCompletions.length
+    ? [...chartProjectCompletions].sort((a, b) => (b.completions ?? 0) - (a.completions ?? 0))[0]
+    : null;
+
+  // Peak enrollment week
+  const peakWeek = chartWeeklyEnrollments.length
+    ? [...chartWeeklyEnrollments].sort((a, b) => (b.enrollments ?? 0) - (a.enrollments ?? 0))[0]
+    : null;
+
+  // Total completions across all projects
+  const totalCompletions = chartProjectCompletions.reduce((s, p) => s + (p.completions ?? 0), 0);
+
+  // KPI tiles — all derived from real data
+  const kpis = [
+    {
+      label: "Total Signups",
+      value: totalUsersFromChart ? totalUsersFromChart.toLocaleString() : "—",
+      sub: momGrowth ? `+${momGrowth}% vs last month` : "across all time",
+      icon: Users,
+      accent: C.green,
+      up: momGrowth > 0,
+    },
+    {
+      label: "Top Project",
+      value: topProject ? topProject.project : "—",
+      sub: topProject ? `${(topProject.completions ?? 0).toLocaleString()} completions` : "no data yet",
+      icon: TrendingUp,
+      accent: C.indigo,
+    },
+    {
+      label: "Peak Enrollment Week",
+      value: peakWeek ? peakWeek.week : "—",
+      sub: peakWeek ? `${(peakWeek.enrollments ?? 0).toLocaleString()} enrollments` : "no data yet",
+      icon: Zap,
+      accent: C.amber,
+    },
+    {
+      label: "Total Completions",
+      value: totalCompletions ? totalCompletions.toLocaleString() : "—",
+      sub: `across ${chartProjectCompletions.length} projects`,
+      icon: CheckCircle,
+      accent: C.green,
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <FadeIn>
+        <SectionHeader
+          eyebrow="INSIGHTS"
+          title="Analytics"
+          subtitle="Real-time platform engagement data"
+        />
+      </FadeIn>
+
+      {/* ── KPI Row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+        {kpis.map(({ label, value, sub, icon: Icon, accent, up }, i) => (
+          <FadeIn key={label} delay={i * 0.06}>
+            <div style={{
+              padding: "18px 20px",
+              background: "rgba(255,255,255,0.03)",
+              border: `1px solid rgba(255,255,255,0.07)`,
+              borderRadius: 14,
+              transition: "border-color 0.25s, background 0.25s",
+            }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = accent + "30";
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+              }}>
+              {/* Icon + label row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  background: accent + "14", border: `1px solid ${accent}22`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Icon size={13} color={accent} />
+                </div>
+                <span style={{ fontSize: 10, color: "#3a3a3a", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>
+                  {label}
+                </span>
+              </div>
+              {/* Value */}
+              <p style={{
+                fontSize: 15, fontWeight: 600,
+                color: "rgba(255,255,255,0.88)",
+                margin: "0 0 4px",
+                lineHeight: 1.3,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {value}
+              </p>
+              {/* Sub */}
+              <p style={{ fontSize: 11, color: up ? C.green : "#444", margin: 0 }}>{sub}</p>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+
+      {/* ── Charts: 2-col top row, 1 full-width bottom ── */}
+
+      {/* Row 1: User Growth (wide) + Weekly Enrollments */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 14 }}>
+
+        {/* User Growth — area chart */}
+        <FadeIn delay={0.05}>
+          <Panel style={{ padding: "22px 24px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
+              <div>
+                <EyebrowLabel>User Growth</EyebrowLabel>
+                <p style={{ fontSize: 11, color: "#444", margin: 0 }}>Monthly signups over 12 months</p>
+              </div>
+              {momGrowth && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, padding: "3px 9px",
+                  borderRadius: 6, background: `${C.green}12`,
+                  border: `1px solid ${C.green}22`, color: C.green,
+                }}>
+                  +{momGrowth}% MoM
+                </span>
+              )}
+            </div>
+            {chartUserGrowth.length === 0
+              ? <ChartEmpty label="user growth" />
+              : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={chartUserGrowth} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="ugGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.green} stopOpacity={0.18} />
+                        <stop offset="100%" stopColor={C.green} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.06)", strokeWidth: 1, fill: "transparent" }} wrapperStyle={{ outline: "none" }} />
+                    <Area
+                      type="monotone" dataKey="users" name="Users"
+                      stroke={C.green} strokeWidth={2}
+                      fill="url(#ugGrad)" dot={false}
+                      activeDot={{ r: 4, fill: C.green, strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+          </Panel>
+        </FadeIn>
+
+        {/* Weekly Enrollments — line chart */}
+        <FadeIn delay={0.1}>
+          <Panel style={{ padding: "22px 24px" }}>
+            <div style={{ marginBottom: 18 }}>
+              <EyebrowLabel>Weekly Enrollments</EyebrowLabel>
+              <p style={{ fontSize: 11, color: "#444", margin: 0 }}>
+                {peakWeek ? `Peak: ${peakWeek.week} · ${peakWeek.enrollments} enrolled` : "Enrollment activity by week"}
+              </p>
+            </div>
+            {chartWeeklyEnrollments.length === 0
+              ? <ChartEmpty label="enrollment" />
+              : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={chartWeeklyEnrollments} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" vertical={false} />
+                    <XAxis dataKey="week" tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.06)", strokeWidth: 1, fill: "transparent" }} wrapperStyle={{ outline: "none" }} />
+                    <Line
+                      type="monotone" dataKey="enrollments" name="Enrollments"
+                      stroke={C.green} strokeWidth={2} dot={false}
+                      activeDot={{ r: 4, fill: C.indigo, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+          </Panel>
+        </FadeIn>
+      </div>
+
+      {/* Row 2: Project Completions — full width bar chart */}
+      <FadeIn delay={0.15}>
+        <Panel style={{ padding: "22px 24px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
+            <div>
+              <EyebrowLabel>Project Completions</EyebrowLabel>
+              <p style={{ fontSize: 11, color: "#444", margin: 0 }}>
+                {totalCompletions
+                  ? `${totalCompletions.toLocaleString()} total completions across ${chartProjectCompletions.length} projects`
+                  : "Completions by project"}
+              </p>
+            </div>
+            {topProject && (
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "#444", letterSpacing: "0.06em", textTransform: "uppercase", margin: "0 0 2px" }}>Top Project</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.75)", margin: 0 }}>
+                  {topProject.project}
+                </p>
+              </div>
+            )}
+          </div>
+          {chartProjectCompletions.length === 0
+            ? <ChartEmpty label="completion" />
+            : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={chartProjectCompletions}
+                  barSize={18}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 40 }}
+                >
+                  <defs>
+                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={C.green} stopOpacity={0.85} />
+                      <stop offset="100%" stopColor={C.green} stopOpacity={0.35} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" vertical={false} />
+                  <XAxis
+                    dataKey="project"
+                    interval={0}
+                    tick={{ fill: "#3a3a3a", fontSize: 10 }}
+                    tickFormatter={v => v?.length > 12 ? v.slice(0, 12) + "…" : v}
+                    angle={-30}
+                    textAnchor="end"
+                    height={50}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis tick={{ fill: "#3a3a3a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.06)", strokeWidth: 1, fill: "transparent" }} wrapperStyle={{ outline: "none" }} />
+                  <Bar dataKey="completions" name="Completions" fill="url(#barGrad)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+        </Panel>
+      </FadeIn>
+    </div>
+  );
+}
+
+function ContentModeration() {
+  const items = [
+    { label: "Submitted Projects", count: 7, desc: "Projects awaiting admin review", icon: FolderOpen },
+    { label: "Reported Content", count: 3, desc: "User-flagged comments and projects", icon: AlertTriangle },
+    { label: "Pending Review", count: 2, desc: "Content items in draft / review state", icon: Eye },
+  ];
+  return (
+    <FadeIn>
+      <div>
+        <SectionHeader eyebrow="SAFETY" title="Content Moderation" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+          {items.map(({ label, count, desc, icon: Icon }, i) => (
+            <FadeIn key={label} delay={i * 0.06}>
+              <Panel style={{ padding: "18px 20px" }} accent={C.amber}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 8,
+                    background: `${C.amber}12`, border: `1px solid ${C.amber}22`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Icon size={13} color={C.amber} />
+                  </div>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 600, color: "#f2f2f2" }}>{count}</span>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.8)", margin: "0 0 4px" }}>{label}</p>
+                <p style={{ fontSize: 11.5, color: "#555", lineHeight: 1.6, margin: "0 0 14px" }}>{desc}</p>
+                <GhostBtn icon={Eye} onClick={() => { }}>Review</GhostBtn>
+              </Panel>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </FadeIn>
+  );
+}
+
+function AchievementManagement({ badges, setBadges }) {
+  const [modal, setModal] = useState(null);
+  return (
+    <>
+      <FadeIn>
+        <SectionHeader eyebrow="GAMIFICATION" title="Achievements" subtitle={`${badges.length} badges`}
+          action={<PrimaryBtn icon={Plus} onClick={() => setModal("add")}>Create</PrimaryBtn>} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+          {badges.map((a, i) => (
+            <FadeIn key={a.id} delay={i * 0.05}>
+              <Panel style={{ padding: "18px 20px" }} elevation={1} accent={C.green}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+                  <span style={{ fontSize: 24 }}>{a.icon}</span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <GhostBtn icon={Edit2} onClick={() => setModal(a)} />
+                    <DangerBtn icon={Trash2} onClick={() => setBadges(prev => prev.filter(x => x.id !== a.id))} />
+                  </div>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)", margin: "0 0 4px" }}>{a.name}</p>
+                <p style={{ fontSize: 11.5, color: "#555", lineHeight: 1.6, margin: "0 0 12px" }}>{a.description}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <Zap size={11} color={`${C.green}90`} />
+                  <span style={{ fontSize: 11, color: `${C.green}90`, fontWeight: 600 }}>{a.xp} XP</span>
+                </div>
+              </Panel>
+            </FadeIn>
+          ))}
+        </div>
+      </FadeIn>
+
+      <AnimatePresence>
+        {modal && (
+          <AchievementModal
+            initial={modal === "add" ? null : modal}
+            onClose={() => setModal(null)}
+            onSave={form => {
+              if (modal === "add") setBadges(prev => [...prev, { ...form, id: Date.now() }]);
+              else setBadges(prev => prev.map(x => x.id === modal.id ? { ...x, ...form } : x));
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function SystemSettings() {
+  const [settings, setSettings] = useState({
+    maintenance: false, registration: true, darkMode: true, emailNotifs: true, betaFeatures: false,
+  });
+  const toggle = k => setSettings(s => ({ ...s, [k]: !s[k] }));
+  const items = [
+    { key: "maintenance", label: "Maintenance Mode", desc: "Temporarily disable user access", danger: true },
+    { key: "registration", label: "User Registration", desc: "Allow new users to sign up" },
+    { key: "darkMode", label: "Force Dark Mode", desc: "Override all user theme preferences" },
+    { key: "emailNotifs", label: "Email Notifications", desc: "Send transactional emails to users" },
+    { key: "betaFeatures", label: "Beta Features", desc: "Enable experimental features platform-wide" },
+  ];
+  const health = [
+    { label: "Database", icon: Database },
+    { label: "API", icon: Cpu },
+    { label: "CDN", icon: Globe },
+  ];
+
+  return (
+    <FadeIn>
+      <SectionHeader eyebrow="SYSTEM" title="Settings" subtitle="Admin-only platform configuration" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16, flexWrap: "wrap" }} className="admin-settings-grid">
+        <Panel style={{ padding: "6px 0" }}>
+          {items.map(({ key, label, desc, danger }) => {
+            const on = settings[key];
+            return (
+              <div key={key}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "14px 20px",
+                  borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  background: on && danger ? "rgba(239,68,68,0.03)" : "transparent",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={e => !on && (e.currentTarget.style.background = "rgba(255,255,255,0.018)")}
+                onMouseLeave={e => e.currentTarget.style.background = on && danger ? "rgba(239,68,68,0.03)" : "transparent"}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: on && danger ? "#FCA5A5" : "rgba(255,255,255,0.8)", margin: 0 }}>{label}</p>
+                  <p style={{ fontSize: 11, color: "#555", margin: "3px 0 0", lineHeight: 1.5 }}>{desc}</p>
+                </div>
+                <button onClick={() => toggle(key)} style={{
+                  position: "relative", flexShrink: 0,
+                  width: 36, height: 20, borderRadius: 99,
+                  background: on ? (danger ? "#ef4444" : C.green) : "rgba(255,255,255,0.1)",
+                  border: "none", cursor: "pointer", transition: "background 0.22s",
+                }}>
+                  <span style={{
+                    position: "absolute", top: 2, width: 16, height: 16,
+                    borderRadius: "50%", background: "#fff",
+                    left: on ? 18 : 2, transition: "left 0.22s cubic-bezier(0.22,1,0.36,1)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                  }} />
+                </button>
+              </div>
+            );
+          })}
+        </Panel>
+
+        <Panel style={{ padding: "18px 20px" }}>
+          <EyebrowLabel>Service Health</EyebrowLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            {health.map(({ label, icon: Icon }) => (
+              <div key={label} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "10px 14px", borderRadius: 10,
+                background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icon size={12} color="#444" />
+                  <span style={{ fontSize: 12, color: "#777" }}>{label}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, boxShadow: `0 0 6px ${C.green}` }} />
+                  <span style={{ fontSize: 11, color: `${C.green}90` }}>Healthy</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button style={{
+            marginTop: 12, width: "100%",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "9px 0", borderRadius: 9,
+            border: "1px solid rgba(255,255,255,0.07)",
+            background: "transparent", cursor: "pointer",
+            fontSize: 12, color: "#555", fontFamily: "inherit",
+            transition: "all 0.2s",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#aaa"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; }}>
+            <RefreshCw size={11} />
+            Refresh Status
+          </button>
+        </Panel>
+      </div>
+    </FadeIn>
+  );
+}
+
+function ActivityFeed({ activity = [] }) {
+  const iconMap = { FolderOpen, UserCheck, Trophy, Trash2, Activity };
+  return (
+    <FadeIn>
+      <SectionHeader eyebrow="LOG" title="Activity Feed" subtitle="Recent admin actions" />
+      <Panel style={{ padding: "18px 22px" }}>
+        {activity.map((item, i) => {
+          const Icon = item.icon ?? iconMap[item.iconKey] ?? Activity;
+          return (
+            <motion.div key={item.id}
+              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.06, ease: EASE }}
+              style={{ display: "flex", gap: 12, position: "relative" }}>
+              {i < activity.length - 1 && (
+                <div style={{ position: "absolute", left: 15, top: 32, bottom: 0, width: 1, background: "rgba(255,255,255,0.04)" }} />
+              )}
+              <div style={{
+                padding: 8, borderRadius: 9,
+                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+                flexShrink: 0, zIndex: 1, height: "fit-content", marginTop: 2,
+              }}>
+                <Icon size={12} color="#555" />
+              </div>
+              <div style={{ paddingBottom: 20, flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.75)", margin: 0 }}>{item.action}</p>
+                <p style={{ fontSize: 11.5, color: "#555", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.detail}</p>
+                <p style={{ fontSize: 11, color: "#3a3a3a", marginTop: 4 }}>{item.time}</p>
+              </div>
+            </motion.div>
+          );
+        })}
+        {activity.length === 0 && (
+          <p style={{ textAlign: "center", color: "#444", fontSize: 13, padding: "24px 0" }}>No recent activity</p>
+        )}
+      </Panel>
+    </FadeIn>
+  );
+}
+
+// ─── ACCESS DENIED ────────────────────────────────────────────────────────────
+function AccessDenied() {
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ ease: EASE, duration: 0.5 }}
+        style={{ textAlign: "center", maxWidth: 360, padding: "40px 24px" }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 20px",
+        }}>
+          <Shield size={22} color="#f87171" />
+        </div>
+        <h1 style={{ ...SECTION_HEAD, fontSize: 20, marginBottom: 10 }}>Access Denied</h1>
+        <p style={{ fontSize: 13, color: "#555", lineHeight: 1.7, marginBottom: 24 }}>
+          You don't have permission to view this page. Admin access is required.
+        </p>
+        <a href="/" style={{ textDecoration: "none" }}>
+          <PrimaryBtn icon={ChevronLeft}>Return Home</PrimaryBtn>
+        </a>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── OVERVIEW SECTION ─────────────────────────────────────────────────────────
+function Overview({ user, stats, activity, chartUserGrowth, chartProjectCompletions, chartWeeklyEnrollments }) {
+  const statCards = [
+    { icon: Users, label: "Total Users", value: stats.totalUsers ?? 0, accent: C.green },
+    { icon: FolderOpen, label: "Projects", value: stats.totalProjects ?? 0, accent: C.indigo },
+    { icon: CheckCircle, label: "Completions", value: stats.totalCompletions ?? 0, accent: C.amber },
+    { icon: Zap, label: "Active Users", value: stats.totalActiveUsers ?? 0, accent: C.green },
+    { icon: TrendingUp, label: "New This Week", value: stats.newUsersThisWeek ?? 0, accent: C.indigo },
+  ];
+
+  // ── Real derived quick stats ──
+  // Completion Rate: completions / totalEnrollments (now returned by backend)
+  const completionRate = stats.totalEnrollments
+    ? Math.round((stats.totalCompletions / stats.totalEnrollments) * 100)
+    : 0;
+
+  // MoM User Growth: (thisMonth - lastMonth) / lastMonth × 100
+  const momRate = (() => {
+    if (chartUserGrowth.length < 2) return 0;
+    const prev = chartUserGrowth[chartUserGrowth.length - 2]?.users ?? 0;
+    const curr = chartUserGrowth[chartUserGrowth.length - 1]?.users ?? 0;
+    if (!prev) return 0;
+    return Math.round(((curr - prev) / prev) * 100);
+  })();
+
+  // Weekly Engagement: latest week vs peak week
+  const weeklyEngagement = (() => {
+    if (!chartWeeklyEnrollments.length) return 0;
+    const peak = Math.max(...chartWeeklyEnrollments.map(w => w.enrollments ?? 0));
+    const latest = chartWeeklyEnrollments[chartWeeklyEnrollments.length - 1]?.enrollments ?? 0;
+    return peak ? Math.round((latest / peak) * 100) : 0;
+  })();
+
+  const quickStats = [
+    {
+      label: "Project Completion Rate",
+      value: `${completionRate}%`,
+      bar: completionRate,
+    },
+    {
+      label: "User Growth Rate (MoM)",
+      value: momRate >= 0 ? `+${momRate}%` : `${momRate}%`,
+      bar: Math.min(100, Math.max(0, 50 + momRate)),
+      negative: momRate < 0,
+    },
+    {
+      label: "Weekly Engagement",
+      value: `${weeklyEngagement}%`,
+      bar: weeklyEngagement,
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
+      {/* Hero */}
+      <FadeIn>
+        <div style={{
+          borderRadius: 18, padding: "28px 30px",
+          background: "rgba(255,255,255,0.03)",
+          border: `1px solid rgba(255,255,255,0.07)`,
+          position: "relative", overflow: "hidden",
+        }}>
+          <div style={{
+            position: "absolute", top: "50%", right: -60,
+            transform: "translateY(-50%)", width: 300, height: 200,
+            background: `radial-gradient(ellipse, ${C.green}08 0%, transparent 65%)`,
+            pointerEvents: "none",
+          }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <h2 style={{ ...SECTION_HEAD, fontSize: 20 }}>
+                Welcome back, {user?.fullName?.split(" ")[0]}
+              </h2>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 10, fontWeight: 600, padding: "3px 9px",
+                background: `${C.green}10`, border: `1px solid ${C.green}25`,
+                borderRadius: 6, color: C.green, letterSpacing: "0.06em",
+              }}>
+                <Shield size={9} strokeWidth={2.5} /> ADMIN
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "#555", margin: 0 }}>Here's what's happening across the BuildWise platform today.</p>
+          </div>
+        </div>
+      </FadeIn>
+
+      {/* Stat cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
+        {statCards.map(({ icon, label, value, accent }, i) => (
+          <StatCard key={label} icon={icon} label={label} value={value} delay={i * 0.05} accent={accent} />
+        ))}
+      </div>
+
+      <SectionDivider />
+
+      {/* Charts */}
+      <AnalyticsSection
+        chartUserGrowth={chartUserGrowth}
+        chartProjectCompletions={chartProjectCompletions}
+        chartWeeklyEnrollments={chartWeeklyEnrollments}
+      />
+
+      <SectionDivider />
+
+      {/* Two-col: Activity + Quick Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="admin-two-col">
+        <ActivityFeed activity={activity} />
+
+        <FadeIn delay={0.1}>
+          <div>
+            <SectionHeader eyebrow="METRICS" title="Quick Stats" />
+            <Panel style={{ padding: "6px 0" }}>
+              {quickStats.map(({ label, value, bar, negative }, i) => {
+                const barColor = negative ? "#f87171" : C.green;
+                return (
+                  <div key={label} style={{
+                    padding: "14px 20px",
+                    borderBottom: i < quickStats.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: "#666" }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: negative ? "#f87171" : "rgba(255,255,255,0.8)", fontFamily: "'DM Mono', monospace" }}>{value}</span>
+                    </div>
+                    <div style={{ height: 3, borderRadius: 99, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${bar}%` }}
+                        transition={{ delay: 0.4 + i * 0.1, duration: 0.8, ease: EASE }}
+                        style={{ height: "100%", borderRadius: 99, background: `linear-gradient(90deg, ${barColor}80, ${barColor})` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </Panel>
+          </div>
+        </FadeIn>
+      </div>
+
+      <SectionDivider />
+
+      <ContentModeration />
+    </div>
+  );
+}
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-
 export default function AdminPanel() {
   const { user, loading } = useContext(UserContext);
   const [section, setSection] = useState("overview");
@@ -49,288 +1638,190 @@ export default function AdminPanel() {
   const [userPage, setUserPage] = useState(1);
   const [userTotalPages, setUserTotalPages] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [userError, setUserError] = useState(null);
-  const [paths, setPaths] = useState([]);
   const [badges, setBadges] = useState([]);
-
-  // Project Management data lives here (not inside ProjectManagement) so the
-  // top-bar "Add Project" shortcut and the Project Management table can share
-  // the same drawer instance and the same list, and both Add + Edit can
-  // refresh the table immediately after a save.
   const [projects, setProjects] = useState([]);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("All");
   const [projectPage, setProjectPage] = useState(1);
   const [projectTotalPages, setProjectTotalPages] = useState(0);
   const [totalProjects, setTotalProjects] = useState(0);
-  const [projectError, setProjectError] = useState(null);
   const PROJECTS_PER_PAGE = 10;
 
+  const fetchProjects = () =>
+    getAdminProjects({ page: projectPage, limit: PROJECTS_PER_PAGE, difficulty: projectFilter, search: projectSearch })
+      .then(data => { setProjects(data.projects); setProjectTotalPages(data.totalPages); setTotalProjects(data.totalProjects); })
+      .catch(console.error);
 
-  const fetchProjects = () => {
-    return getAdminProjects({
-      page: projectPage,
-      limit: PROJECTS_PER_PAGE,
-      difficulty: projectFilter,
-      search: projectSearch,
-    })
-      .then((data) => {
-        setProjects(data.projects);
-        setProjectTotalPages(data.totalPages);
-        setTotalProjects(data.totalProjects);
-      })
-      .catch((err) => setProjectError(err.message));
-  };
-
-  const fetchUsers = () => {
-    return getAdminUsers({
-      page: userPage,
-      limit: 5,
-      role: userFilter,
-      search: userSearch,
-    }).then((data) => {
-      setUsers(data.users)
-      setUserTotalPages(data.totalPages)
-      setTotalUsers(data.totalUsers)
-    }).catch((err) => setUserError(err.message))
-  }
+  const fetchUsers = () =>
+    getAdminUsers({ page: userPage, limit: 10, role: userFilter, search: userSearch })
+      .then(data => { setUsers(data.users); setUserTotalPages(data.totalPages); setTotalUsers(data.totalUsers); })
+      .catch(console.error);
 
   const handleSaveProject = async (projectData) => {
     try {
       if (editingProject) {
-        await axios.put(
-          `${import.meta.env.VITE_APP_URI}/api/v1/projects/update-project/${editingProject._id}`,
-          projectData
-        );
+        await axios.put(`${import.meta.env.VITE_APP_URI}/api/v1/projects/update-project/${editingProject._id}`, projectData);
       } else {
-        await axios.post(
-          `${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`,
-          projectData
-        );
+        await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`, projectData);
       }
-
       await fetchProjects();
       setShowProjectDrawer(false);
       setEditingProject(null);
     } catch (error) {
-      console.log("STATUS:", error.response?.status);
-      console.log("DATA:", error.response?.data);
-      console.log(error);
+      console.error("STATUS:", error.response?.status, error.response?.data);
     }
   };
 
-  const today = new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const sideWidth = collapsed ? 56 : 216;
-
   useEffect(() => {
     getAdminDashboardSummary().then(setSummary);
-    getAdminLearningPaths().then(setPaths);
     getAdminAchievements().then(setBadges);
   }, []);
 
   useEffect(() => {
     fetchProjects();
-    fetchUsers()
+    fetchUsers();
   }, [projectPage, projectFilter, projectSearch, userPage, userFilter, userSearch]);
 
   const stats = summary?.metrics ?? {};
   const activity = summary?.activity ?? [];
   const notifications = summary?.notifications ?? [];
   const chartUserGrowth = summary?.charts?.userGrowth ?? [];
-  const chartProjectViews = summary?.charts?.projectViews ?? [];
-  const chartPathCompletions = summary?.charts?.pathCompletions ?? [];
+  const chartProjectCompletions = summary?.charts?.projectCompletions ?? [];
+  const chartWeeklyEnrollments = summary?.charts?.weeklyEnrollments ?? [];
 
   const sectionMap = {
-    overview: null,
     projects: (
       <ProjectManagement
-        projects={projects}
-        setProjects={setProjects}
-        totalProjects={totalProjects}
-        totalPages={projectTotalPages}
-        page={projectPage}
-        setPage={setProjectPage}
-        search={projectSearch}
-        setSearch={setProjectSearch}
-        filter={projectFilter}
-        setFilter={setProjectFilter}
+        projects={projects} setProjects={setProjects}
+        totalProjects={totalProjects} totalPages={projectTotalPages}
+        page={projectPage} setPage={setProjectPage}
+        search={projectSearch} setSearch={setProjectSearch}
+        filter={projectFilter} setFilter={setProjectFilter}
         onAddProject={() => { setEditingProject(null); setShowProjectDrawer(true); }}
         onEditProject={async (project) => {
           try {
-            const res = await axios.get(
-              `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${project.slug}`
-            );
+            const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${project.slug}`);
             setEditingProject(res.data.data ?? res.data);
-          } catch {
-            setEditingProject(project);
-          }
+          } catch { setEditingProject(project); }
           setShowProjectDrawer(true);
         }}
       />
     ),
-    paths: <LearningPathManagement paths={paths} setPaths={setPaths} />,
-    users: (<UserManagement
-      users={users}
-      setUsers={setUsers}
-      totalUsers={totalUsers}
-      totalPages={userTotalPages}
-      page={userPage}
-      setPage={setUserPage}
-      search={userSearch}
-      setSearch={setUserSearch}
-      filter={userFilter}
-      setFilter={setUserFilter}
-      fetchUsers={fetchUsers} />),
-    analytics: (
-      <AnalyticsSection
-        chartUserGrowth={chartUserGrowth}
-        chartProjectViews={chartProjectViews}
-        chartPathCompletions={chartPathCompletions}
+    users: (
+      <UserManagement
+        users={users} setUsers={setUsers}
+        totalUsers={totalUsers} totalPages={userTotalPages}
+        page={userPage} setPage={setUserPage}
+        search={userSearch} setSearch={setUserSearch}
+        filter={userFilter} setFilter={setUserFilter}
+        fetchUsers={fetchUsers}
       />
     ),
+    analytics: <AnalyticsSection chartUserGrowth={chartUserGrowth} chartProjectCompletions={chartProjectCompletions} chartWeeklyEnrollments={chartWeeklyEnrollments} />,
     moderation: <ContentModeration />,
     achievements: <AchievementManagement badges={badges} setBadges={setBadges} />,
     settings: <SystemSettings />,
     activity: <ActivityFeed activity={activity} />,
   };
 
+  if (loading) return <Loader size="lg" text="Checking Access…" fullScreen />;
+  if (user?.role !== "admin") return <AccessDenied />;
 
-  if (loading) {
-    return <Loader size="lg"
-      text="Checking Access..."
-      fullScreen />;
-  }
-
-  if (user?.role !== "admin") {
-    return <AccessDenied />;
-  }
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div style={{
+      minHeight: "100vh", display: "flex",
+      background: C.bg, color: "#e5e5e5",
+      fontFamily: "'DM Sans', -apple-system, sans-serif",
+    }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap');
-        *, *::before, *::after { box-sizing: border-box; font-family: 'DM Sans', -apple-system, sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 99px; }
         select option { background: #0d0f14; color: white; }
+        @media (max-width: 900px) {
+          .admin-two-col { grid-template-columns: 1fr !important; }
+          .admin-settings-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
-      <Sidebar active={section} onSelect={setSection} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      {/* Global ambient layer */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)",
+          backgroundSize: "64px 64px", opacity: 0.5,
+        }} />
+        <div style={{ position: "absolute", top: "0%", left: "20%", width: 700, height: 500, background: `radial-gradient(ellipse, ${C.green}08 0%, transparent 65%)` }} />
+        <div style={{ position: "absolute", top: "45%", right: "2%", width: 500, height: 400, background: `radial-gradient(ellipse, ${C.indigo}07 0%, transparent 65%)` }} />
+        <div style={{ position: "absolute", bottom: "5%", left: "35%", width: 400, height: 250, background: `radial-gradient(ellipse, ${C.amber}05 0%, transparent 70%)` }} />
+      </div>
 
-      <motion.main
-        animate={{ marginLeft: sideWidth }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className="min-h-screen"
-      >
-        {/* Top Bar */}
-        <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-[#0a0a0a]/95 backdrop-blur-xl">
-          <div>
-            <h1 className="text-sm font-semibold text-white/85">
-              {NAV.find((n) => n.id === section)?.label || "Overview"}
-            </h1>
-            <p className="text-xs text-white/25 mt-0.5">{today}</p>
+      {/* Sidebar */}
+      <Sidebar
+        active={section} onSelect={setSection}
+        collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}
+        user={user}
+      />
+
+      {/* Main */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
+        <Header
+          section={section} user={user}
+          notifications={notifications}
+          onAddProject={() => { setEditingProject(null); setShowProjectDrawer(true); }}
+          onGoUsers={() => setSection("users")}
+          onNotifToggle={() => setShowNotifs(v => !v)}
+          showNotifs={showNotifs}
+          onNotifClose={() => setShowNotifs(false)}
+        />
+
+        <div style={{ flex: 1, overflowY: "auto", maxHeight: "calc(100vh - 63px)" }}>
+          <div style={{ padding: "32px 32px 48px", maxWidth: 1280 }}>
+            <AnimatePresence mode="wait">
+              {section === "overview" ? (
+                <motion.div key="overview"
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}>
+                  <Overview
+                    user={user} stats={stats} activity={activity}
+                    chartUserGrowth={chartUserGrowth}
+                    chartProjectCompletions={chartProjectCompletions}
+                    chartWeeklyEnrollments={chartWeeklyEnrollments}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div key={section}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}>
+                  {sectionMap[section]}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div className="flex items-center gap-2">
-            <PrimaryButton small icon={Plus} onClick={() => { setEditingProject(null); setShowProjectDrawer(true); }}>Add Project</PrimaryButton>
-            <GhostButton small icon={BookOpen} onClick={() => setSection("paths")}>Add Path</GhostButton>
-            <GhostButton small icon={Users} onClick={() => setSection("users")}>Manage Users</GhostButton>
-            <div className="relative">
-              <button onClick={() => setShowNotifs((v) => !v)}
-                className="relative p-2 rounded-lg border border-white/15 text-white/50 hover:text-white/60 hover:border-white/15 transition-colors">
-                <Bell size={15} />
-                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#6EE7B7] text-[9px] font-bold flex items-center justify-center text-black leading-none">
-                  {notifications.length}
-                </span>
-              </button>
-              <NotificationPanel open={showNotifs} onClose={() => setShowNotifs(false)} notifications={notifications} />
-            </div>
-            <div className="w-8 h-8 bg-[#6EE7B7] rounded-full border border-white/10 flex items-center justify-center text-xs font-semibold text-black flex-shrink-0">
-              {user?.fullName?.[0] || "A"}
-            </div>
-          </div>
-        </div>
 
-        {/* Page Content */}
-        <div className="p-6 space-y-6 max-w-7xl">
-
-          {section === "overview" && (
-            <>
-              {/* Admin hero */}
-              <motion.div {...fadeUp(0)}
-                className="rounded-2xl border border-white/5 bg-[#111318] px-6 py-5">
-                <div className="flex items-center gap-2.5 mb-1">
-                  <h2 className="text-base font-semibold text-white">Welcome back, {user.fullName?.split(" ")[0]}</h2>
-                  <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-400/10 border border-emerald-400/15 text-emerald-400 flex items-center gap-1">
-                    <Shield size={9} strokeWidth={2.5} /> Admin
-                  </span>
-                </div>
-                <p className="text-xs text-white/35">Here's what's happening across the BuildWise platform today.</p>
-              </motion.div>
-
-              {/* Stat cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                <StatCard icon={Users} label="Total Users" value={stats.totalUsers ?? 0} delay={0.05} />
-                <StatCard icon={FolderOpen} label="Total Projects" value={stats.totalProjects ?? 0} delay={0.08} />
-                <StatCard icon={BookOpen} label="Learning Paths" value={stats.totalLearningPaths ?? 0} delay={0.11} />
-                <StatCard icon={CheckCircle} label="Completions" value={stats.totalCompletions ?? 0} delay={0.14} />
-                <StatCard icon={Zap} label="Active Users" value={stats.activeUsers ?? 0} delay={0.17} />
-                <StatCard icon={TrendingUp} label="New This Week" value={stats.newUsersThisWeek ?? 0} delay={0.20} />
+          {/* Footer */}
+          <footer style={{
+            padding: "18px 32px", borderTop: "1px solid rgba(255,255,255,0.05)",
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 5,
+                background: "linear-gradient(135deg, #6EE7B7, #818CF8)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Hammer size={10} color="#071A12" />
               </div>
-
-              <AnalyticsSection
-                chartUserGrowth={chartUserGrowth}
-                chartProjectViews={chartProjectViews}
-                chartPathCompletions={chartPathCompletions}
-              />
-              <ContentModeration />
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <ActivityFeed activity={activity} />
-
-                {/* Quick Stats */}
-                <motion.section {...fadeUp(0.15)}>
-                  <SectionHeader title="Quick Stats" />
-                  <div className="space-y-2">
-                    {[
-                      { label: "Project Completion Rate", value: "68%", bar: 68 },
-                      { label: "User Growth Rate (MoM)", value: "+14.8%", bar: 74 },
-                      { label: "Weekly Engagement", value: "83%", bar: 83 },
-                    ].map(({ label, value, bar }, i) => (
-                      <div key={label} className="px-4 py-3.5 rounded-xl border border-white/5 bg-[#111318] hover:border-white/10 transition-colors">
-                        <div className="flex justify-between items-center mb-2.5">
-                          <span className="text-xs text-white/50">{label}</span>
-                          <span className="text-sm font-semibold text-white/80">{value}</span>
-                        </div>
-                        <div className="h-1 rounded-full bg-white/5 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${bar}%` }}
-                            transition={{ delay: 0.5 + i * 0.1, duration: 0.7, ease: "easeOut" }}
-                            className="h-full rounded-full bg-emerald-400/60"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.section>
-              </div>
-            </>
-          )}
-
-          {/* Routed sections */}
-          <AnimatePresence mode="wait">
-            {section !== "overview" && (
-              <motion.div key={section}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}>
-                {sectionMap[section]}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#555" }}>BuildWise Admin</span>
+            </div>
+            <span style={{ fontSize: 11, color: "#2a2a2a" }}>© 2025 BuildWise. All rights reserved.</span>
+          </footer>
         </div>
-      </motion.main>
+      </div>
 
-      {/* Modals */}
+      {/* Project Drawer */}
       <AnimatePresence>
         {showProjectDrawer && (
           <ProjectBuilderDrawer
@@ -342,932 +1833,6 @@ export default function AdminPanel() {
           />
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-
-const difficultyColor = (d) => ({
-  Beginner:
-    "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
-
-  Intermediate:
-    "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
-
-  Advanced:
-    "text-red-400 bg-red-500/15 border-red-500/30",
-}[d] || "text-white/35 bg-white/4 border-white/8");
-
-const statusColor = (s) => ({
-  completed:
-    "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
-
-  Draft:
-    "text-white/35 bg-white/4 border-white/8",
-
-  Review:
-    "text-white/60 bg-white/5 border-white/10",
-}[s] || "text-white/35 bg-white/4 border-white/8");
-
-const roleColor = (r) => ({
-  admin:
-    "text-pink-400 bg-pink-500/15 border-pink-500/30",
-
-  moderator:
-    "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
-
-  user:
-    "text-white/60 bg-white/5 border-white/10",
-}[r] || "text-white/35 bg-white/4 border-white/8");
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  transition: { delay, duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-});
-
-// ─── PRIMITIVES ───────────────────────────────────────────────────────────────
-
-function Badge({ label, colorClass }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${colorClass}`}>
-      {label}
-    </span>
-  );
-}
-
-function Counter({ target }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let v = 0;
-    const step = Math.ceil(target / 55);
-    const t = setInterval(() => {
-      v += step;
-      if (v >= target) { setCount(target); clearInterval(t); }
-      else setCount(v);
-    }, 16);
-    return () => clearInterval(t);
-  }, [target]);
-  return <>{count.toLocaleString()}</>;
-}
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#0d0f14] border border-white/8 rounded-xl px-3 py-2 text-xs shadow-xl">
-      <p className="font-medium text-white/70 mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} className="text-emerald-400">{p.name}: {p.value.toLocaleString()}</p>
-      ))}
-    </div>
-  );
-};
-
-// ─── LAYOUT PRIMITIVES ────────────────────────────────────────────────────────
-
-function SectionHeader({ title, subtitle, action }) {
-  return (
-    <div className="flex items-center justify-between mb-5">
-      <div>
-        <h2 className="text-sm font-semibold text-white tracking-tight">{title}</h2>
-        {subtitle && <p className="text-xs text-white/35 mt-0.5">{subtitle}</p>}
-      </div>
-      {action}
-    </div>
-  );
-}
-
-function PrimaryButton({ onClick, icon: Icon, children, small = false }) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      className={`flex items-center gap-1.5 bg-emerald-400 text-black font-semibold rounded-lg hover:bg-emerald-300 transition-colors ${small ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm"}`}
-    >
-      {Icon && <Icon size={small ? 12 : 14} strokeWidth={2.5} />}
-      {children}
-    </motion.button>
-  );
-}
-
-function GhostButton({ onClick, icon: Icon, children, small = false, danger = false }) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      className={`flex items-center gap-1.5 border rounded-lg font-medium transition-colors ${danger
-        ? "border-rose-500/20 text-rose-400/80 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5"
-        : "border-white/8 text-white/40 hover:text-white/80 hover:border-white/15 bg-transparent"
-        } ${small ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm"}`}
-    >
-      {Icon && <Icon size={small ? 11 : 13} />}
-      {children}
-    </motion.button>
-  );
-}
-
-function SearchBar({ value, onChange, placeholder }) {
-  return (
-    <div className="relative">
-      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Search…"}
-        className="w-full bg-[#0d0f14] border border-white/7 rounded-lg pl-8.5 pr-4 py-2 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-white/15 transition-colors"
-      />
-    </div>
-  );
-}
-
-// ─── STAT CARD ────────────────────────────────────────────────────────────────
-
-function StatCard({ icon: Icon, label, value, delay = 0 }) {
-  return (
-    <motion.div
-      {...fadeUp(delay)}
-      whileHover={{ y: -2 }}
-      transition={{ ...fadeUp(delay).transition, hover: { duration: 0.2 } }}
-      className="rounded-2xl border border-white/5 bg-[#111318] p-5 cursor-default hover:border-white/10 transition-colors"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <Icon size={14} className="text-white/20" />
-        <ArrowUpRight size={12} className="text-white/15" />
-      </div>
-      <p className="text-2xl font-semibold text-white tracking-tight tabular-nums">
-        <Counter target={typeof value === "number" ? value : 0} />
-      </p>
-      <p className="text-xs text-white/35 mt-1.5">{label}</p>
-    </motion.div>
-  );
-}
-
-// ─── MODALS ───────────────────────────────────────────────────────────────────
-
-const inputCls = "w-full bg-[#0a0a0a] border border-white/7 rounded-lg px-3.5 py-2.5 text-sm text-white/80 placeholder-white/18 focus:outline-none focus:border-white/18 transition-colors";
-const labelCls = "block text-xs text-white/40 mb-1.5 font-medium";
-
-
-
-function AchievementModal({ onClose, initial = null, onSave }) {
-  const [form, setForm] = useState(initial || { name: "", description: "", icon: "🏆", xp: 100 });
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-white/8 bg-[#0d0f14] shadow-2xl"
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
-          <h3 className="text-sm font-semibold text-white">{initial ? "Edit Achievement" : "Create Achievement"}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg border border-white/8 text-white/30 hover:text-white/70 hover:border-white/15 transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
-          {[
-            { label: "Achievement Name", key: "name", placeholder: "Stack Master" },
-            { label: "Description", key: "description", placeholder: "Use 5+ tech stacks" },
-            { label: "Badge Icon (emoji)", key: "icon", placeholder: "🏆" },
-          ].map(({ label, key, placeholder }) => (
-            <div key={key}>
-              <label className={labelCls}>{label}</label>
-              <input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={placeholder} className={inputCls} />
-            </div>
-          ))}
-          <div>
-            <label className={labelCls}>XP Reward</label>
-            <input type="number" value={form.xp} onChange={(e) => set("xp", Number(e.target.value))} placeholder="100" className={inputCls} />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2.5 px-6 py-5 border-t border-white/5">
-          <GhostButton onClick={onClose} icon={X}>Cancel</GhostButton>
-          <PrimaryButton onClick={() => { onSave(form); onClose(); }} icon={Check}>Save Achievement</PrimaryButton>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ─── SECTIONS ─────────────────────────────────────────────────────────────────
-
-function ProjectManagement({
-  projects, setProjects, totalProjects, totalPages, page, setPage,
-  search, setSearch, filter, setFilter, onAddProject, onEditProject,
-}) {
-  const filtered = projects.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "All" || p.difficulty === filter;
-    return matchSearch && matchFilter;
-  });
-  const removeProject = async (id) => {
-    try {
-      await axios.delete(
-        `${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`
-      );
-
-      setProjects((prev) => prev.filter((x) => x._id !== id));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  return (
-    <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318]">
-      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
-        <SectionHeader
-          title="Project Management"
-          subtitle={`${totalProjects} total`}
-        />
-      </div>
-      <div className="px-6 pb-2 pt-4 flex flex-col sm:flex-row gap-3">
-        <div className="flex-1"><SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search projects…" /></div>
-        <div className="flex gap-1.5 flex-wrap">
-          {["All", "Beginner", "Intermediate", "Advanced"].map((f) => (
-            <button key={f} onClick={() => { setFilter(f); setPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filter === f
-                ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-                : "border-white/7 text-white/35 hover:text-white/70 hover:border-white/15"
-                }`}>
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="overflow-x-auto px-6 pb-6 pt-2">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/5">
-              {["Project Name", "Category", "Difficulty", "Tech Stack", "Status", "Created", "Actions"].map((h) => (
-                <th key={h} className="text-left text-xs text-white/25 font-medium pb-3 pr-6 whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <AnimatePresence>
-              {projects.map((p, i) => {
-                return (
-
-                  <motion.tr key={p._id}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="border-b border-white/4 last:border-0 hover:bg-white/2 transition-colors group">
-                    <td className="py-3 pr-6 font-medium text-white/85 whitespace-nowrap text-sm">{p.name}</td>
-                    <td className="py-3 pr-6 text-white/40 whitespace-nowrap text-xs">{p.category}</td>
-                    <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.difficulty} colorClass={difficultyColor(p.difficulty)} /></td>
-                    <td className="py-3 pr-6">
-                      <div className="flex gap-1 flex-wrap">
-                        {p.stack.map((t) => (
-                          <span key={t.name} className="text-xs px-1.5 py-0.5 rounded bg-white/4 text-white/40 border border-white/6">{t.name}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3 pr-6 whitespace-nowrap"><Badge label={p.status} colorClass={statusColor(p.status)} /></td>
-                    <td className="py-3 pr-6 text-white/25 text-xs whitespace-nowrap">{p.createdAt}</td>
-                    <td className="py-3">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <GhostButton small icon={Eye} onClick={() => window.open(`/projectdetails/${p.slug}`, "_blank")}>View</GhostButton>
-                        <GhostButton small icon={Edit2} onClick={() => onEditProject(p)}>Edit</GhostButton>
-                        <GhostButton small danger icon={Trash2} onClick={() => removeProject(p._id)}>Del</GhostButton>
-                      </div>
-                    </td>
-                  </motion.tr>
-                )
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-white/25 text-sm">No projects match your search.</div>
-        )}
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 px-6 pb-6">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
-            <ChevronLeft size={13} />
-          </button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <button key={i} onClick={() => setPage(i + 1)}
-              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1
-                ? "bg-emerald-400 text-black"
-                : "text-white/35 hover:text-white/70 border border-white/7"
-                }`}>
-              {i + 1}
-            </button>
-          ))}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
-            <ChevronRight size={13} />
-          </button>
-        </div>
-      )}
-    </motion.section>
-  );
-}
-
-function LearningPathManagement({ paths, setPaths }) {
-  // TODO: Learning path CRUD API
-  const [page, setPage] = useState(1);
-  const PER_PAGE = 4;
-  const totalPages = Math.ceil(paths.length / PER_PAGE);
-  const paginated = paths.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
-  return (
-    <motion.section {...fadeUp(0.1)} className="rounded-2xl border border-white/5 bg-[#111318] p-6">
-      <SectionHeader title="Learning Paths" subtitle={`${paths.length} paths`}
-        action={<PrimaryButton small icon={Plus} onClick={() => { }}>Add Path</PrimaryButton>} />
-      <div className="grid gap-2">
-        {paginated.map((lp, i) => (
-          <motion.div key={lp.id}
-            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:border-white/10 transition-colors group">
-            <div className="flex items-center gap-3">
-              <BookOpen size={13} className="text-white/20 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-white/85">{lp.name}</p>
-                <p className="text-xs text-white/30 mt-0.5">{lp.modules} modules · {lp.duration}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Badge label={lp.difficulty} colorClass={difficultyColor(lp.difficulty)} />
-              <Badge label={lp.status} colorClass={statusColor(lp.status)} />
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <GhostButton small icon={Eye} onClick={() => { }}>View</GhostButton>
-                <GhostButton small icon={Edit2} onClick={() => { }}>Edit</GhostButton>
-                <GhostButton small danger icon={Trash2} onClick={() => setPaths((p) => p.filter((x) => x.id !== lp.id))}>Del</GhostButton>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-5">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
-            <ChevronLeft size={13} />
-          </button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <button key={i} onClick={() => setPage(i + 1)}
-              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${page === i + 1
-                ? "bg-emerald-400 text-black"
-                : "text-white/35 hover:text-white/70 border border-white/7"
-                }`}>
-              {i + 1}
-            </button>
-          ))}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30 transition-colors">
-            <ChevronRight size={13} />
-          </button>
-        </div>
-      )}
-    </motion.section>
-  );
-}
-
-function UserManagement({ users, setUsers, totalUsers, totalPages, page, setPage, search, setSearch, filter, setFilter, fetchUsers }) {
-
-  const promote = async (id) => {
-    await updateUserRole(id, "admin");
-    fetchUsers();
-  };
-
-  const demote = async (id) => {
-    await updateUserRole(id, "user");
-    fetchUsers();
-  };
-
-  const remove = (id) =>
-    setUsers((u) =>
-      u.filter((x) => x._id !== id)
-    );
-
-  return (
-    <motion.section
-      {...fadeUp(0.1)}
-      className="rounded-2xl border border-white/5 bg-[#111318] p-6"
-    >
-      <SectionHeader
-        title="User Management"
-        subtitle={`${totalUsers} registered users`}
-      />
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex-1">
-          <SearchBar
-            value={search}
-            onChange={(v) => {
-              setSearch(v);
-              setPage(1);
-            }}
-            placeholder="Search users..."
-          />
-        </div>
-
-        <div className="flex gap-1.5">
-          {["All", "admin", "user"].map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setFilter(r);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors capitalize ${filter === r
-                ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-                : "border-white/7 text-white/35 hover:text-white/70 hover:border-white/15"
-                }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <AnimatePresence>
-          {users.map((u, i) => (
-            <motion.div
-              key={u._id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:border-white/10 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/8 flex items-center justify-center text-xs font-semibold text-white/60 flex-shrink-0">
-                  {u.fullName?.[0]}
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-white/85">
-                    {u.fullName}
-                  </p>
-                  <p className="text-xs text-white/35">
-                    {u.username}
-                  </p>
-                  <p className="text-xs text-white/35">
-                    {u.email}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge
-                  label={u.role}
-                  colorClass={roleColor(u.role)}
-                />
-
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {u.role !== "admin" ? (
-                    <GhostButton
-                      small
-                      icon={UserCheck}
-                      onClick={() => promote(u._id)}
-                    >
-                      Promote
-                    </GhostButton>
-                  ) : (
-                    <GhostButton
-                      small
-                      icon={UserX}
-                      onClick={() => demote(u._id)}
-                    >
-                      Demote
-                    </GhostButton>
-                  )}
-
-                  <GhostButton
-                    small
-                    danger
-                    icon={Trash2}
-                    onClick={() => remove(u._id)}
-                  >
-                    Delete
-                  </GhostButton>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {users.length === 0 && (
-          <div className="py-10 text-center text-white/30">
-            No users found
-          </div>
-        )}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-5">
-          <button
-            onClick={() =>
-              setPage((p) => Math.max(1, p - 1))
-            }
-            disabled={page === 1}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30"
-          >
-            <ChevronLeft size={13} />
-          </button>
-
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i + 1)}
-              className={`w-7 h-7 rounded-lg text-xs font-medium ${page === i + 1
-                ? "bg-emerald-400 text-black"
-                : "text-white/35 hover:text-white/70 border border-white/7"
-                }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            onClick={() =>
-              setPage((p) =>
-                Math.min(totalPages, p + 1)
-              )
-            }
-            disabled={page === totalPages}
-            className="p-1.5 rounded-lg border border-white/7 text-white/30 hover:text-white/60 disabled:opacity-30"
-          >
-            <ChevronRight size={13} />
-          </button>
-        </div>
-      )}
-    </motion.section>
-  );
-}
-
-function AnalyticsSection({ chartUserGrowth = [], chartProjectViews = [], chartPathCompletions = [] }) {
-  return (
-    <motion.section {...fadeUp(0.1)} className="space-y-4">
-      <SectionHeader title="Analytics" subtitle="Platform engagement overview" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-1">
-        {[
-          { label: "Most Viewed Project", value: "AI Chat Interface", sub: "2,481 views", icon: Eye },
-          { label: "Most Popular Path", value: "Frontend Mastery", sub: "312 completions", icon: TrendingUp },
-          { label: "Most Active User", value: "Debjit Dey", sub: "92% completion rate", icon: Zap },
-        ].map(({ label, value, sub, icon: Icon }) => (
-          <div key={label} className="rounded-xl border border-white/5 bg-[#111318] px-5 py-4 hover:border-white/10 transition-colors">
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <Icon size={12} className="text-white/20" />
-              <span className="text-xs text-white/30">{label}</span>
-            </div>
-            <p className="text-sm font-semibold text-white/85">{value}</p>
-            <p className="text-xs text-white/25 mt-0.5">{sub}</p>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* User Growth */}
-        <div className="rounded-xl border border-white/5 bg-[#111318] p-5">
-          <p className="text-xs text-white/30 mb-4">User Growth</p>
-          <ResponsiveContainer width="100%" height={150}>
-            <AreaChart data={chartUserGrowth}>
-              <defs>
-                <linearGradient id="gMint" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6ee7b7" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#6ee7b7" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="users" name="Users" stroke="#6ee7b7" strokeWidth={1.5} fill="url(#gMint)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        {/* Project Views */}
-        <div className="rounded-xl border border-white/5 bg-[#111318] p-5">
-          <p className="text-xs text-white/30 mb-4">Project Views (Weekly)</p>
-          <ResponsiveContainer width="100%" height={150}>
-            <LineChart data={chartProjectViews}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="week" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="views" name="Views" stroke="#6ee7b7" strokeWidth={1.5} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        {/* Path Completions */}
-        <div className="rounded-xl border border-white/5 bg-[#111318] p-5">
-          <p className="text-xs text-white/30 mb-4">Path Completions</p>
-          <ResponsiveContainer width="100%" height={150}>
-            <BarChart data={chartPathCompletions} barSize={14}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="completions" name="Completions" fill="#6ee7b7" fillOpacity={0.7} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-function ContentModeration() {
-  const items = [
-    { label: "Submitted Projects", count: 7, desc: "Projects awaiting admin review", icon: FolderOpen },
-    { label: "Reported Content", count: 3, desc: "User-flagged comments and projects", icon: AlertTriangle },
-    { label: "Pending Learning Paths", count: 2, desc: "Learning paths in draft/review", icon: BookOpen },
-  ];
-  return (
-    <motion.section {...fadeUp(0.1)}>
-      <SectionHeader title="Content Moderation" />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {items.map(({ label, count, desc, icon: Icon }) => (
-          <div key={label} className="rounded-xl border border-white/5 bg-[#111318] p-5 hover:border-white/10 transition-colors">
-            <div className="flex items-start justify-between mb-4">
-              <Icon size={13} className="text-white/20 mt-0.5" />
-              <span className="text-xl font-semibold text-white/85 tabular-nums">{count}</span>
-            </div>
-            <p className="text-sm font-medium text-white/80 mb-1">{label}</p>
-            <p className="text-xs text-white/30 mb-4 leading-relaxed">{desc}</p>
-            <GhostButton small icon={Eye} onClick={() => { }}>Review</GhostButton>
-          </div>
-        ))}
-      </div>
-    </motion.section>
-  );
-}
-
-function AchievementManagement({ badges, setBadges }) {
-  const [modal, setModal] = useState(null);
-
-  // TODO: Achievement CRUD API
-
-  return (
-    <>
-      <motion.section {...fadeUp(0.1)}>
-        <SectionHeader title="Achievements" subtitle={`${badges.length} badges`}
-          action={<PrimaryButton small icon={Plus} onClick={() => setModal("add")}>Create</PrimaryButton>} />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {badges.map((a) => (
-            <motion.div key={a.id} whileHover={{ y: -2 }}
-              className="rounded-xl border border-white/5 bg-[#111318] p-5 hover:border-white/10 transition-colors group">
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-2xl">{a.icon}</span>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <GhostButton small icon={Edit2} onClick={() => setModal(a)}>Edit</GhostButton>
-                  <GhostButton small danger icon={Trash2} onClick={() => setBadges((prev) => prev.filter((x) => x.id !== a.id))}>Del</GhostButton>
-                </div>
-              </div>
-              <p className="text-sm font-semibold text-white/85">{a.name}</p>
-              <p className="text-xs text-white/35 mt-1 mb-3 leading-relaxed">{a.description}</p>
-              <div className="flex items-center gap-1.5">
-                <Zap size={11} className="text-emerald-400/70" />
-                <span className="text-xs text-emerald-400/70 font-medium">{a.xp} XP</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-      <AnimatePresence>
-        {modal && (
-          <AchievementModal
-            initial={modal === "add" ? null : modal}
-            onClose={() => setModal(null)}
-            onSave={(form) => {
-              if (modal === "add") {
-                setBadges((prev) => [...prev, { ...form, id: Date.now() }]);
-              } else {
-                setBadges((prev) => prev.map((x) => x.id === modal.id ? { ...x, ...form } : x));
-              }
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
-
-function SystemSettings() {
-  const [settings, setSettings] = useState({
-    maintenance: false, registration: true, darkMode: true, emailNotifs: true, betaFeatures: false,
-  });
-  const toggle = (k) => setSettings((s) => ({ ...s, [k]: !s[k] }));
-
-  const items = [
-    { key: "maintenance", label: "Maintenance Mode", desc: "Temporarily disable user access to the platform", danger: true },
-    { key: "registration", label: "User Registration", desc: "Allow new users to sign up" },
-    { key: "darkMode", label: "Force Dark Mode", desc: "Override all user theme preferences" },
-    { key: "emailNotifs", label: "Email Notifications", desc: "Send transactional emails to users" },
-    { key: "betaFeatures", label: "Beta Features", desc: "Enable experimental features for all users" },
-  ];
-
-  const health = [
-    { label: "Database", icon: Database },
-    { label: "API", icon: Cpu },
-    { label: "CDN", icon: Globe },
-  ];
-
-  return (
-    <motion.section {...fadeUp(0.1)}>
-      <SectionHeader title="System Settings" subtitle="Admin-only platform configuration" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-white/5 bg-[#111318] p-5 space-y-2">
-          {items.map(({ key, label, desc, danger }) => (
-            <div key={key} className={`flex items-center justify-between px-4 py-3.5 rounded-xl border transition-colors ${danger && settings[key]
-              ? "border-rose-500/15 bg-rose-500/4"
-              : "border-white/5 bg-[#0a0a0a] hover:border-white/10"
-              }`}>
-              <div>
-                <p className={`text-sm font-medium ${danger && settings[key] ? "text-rose-400" : "text-white/80"}`}>{label}</p>
-                <p className="text-xs text-white/30 mt-0.5">{desc}</p>
-              </div>
-              <button onClick={() => toggle(key)}
-                className={`relative flex-shrink-0 rounded-full transition-colors ${settings[key] ? (danger ? "bg-rose-500" : "bg-emerald-400") : "bg-white/10"}`}
-                style={{ width: 36, height: 20 }}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${settings[key] ? "translate-x-[17px]" : "translate-x-0.5"}`} />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="rounded-2xl border border-white/5 bg-[#111318] p-5">
-          <p className="text-xs font-medium text-white/40 mb-4">Service Health</p>
-          <div className="space-y-2">
-            {health.map(({ label, icon: Icon }) => (
-              <div key={label} className="flex items-center justify-between px-3.5 py-3 rounded-xl bg-[#0a0a0a] border border-white/5">
-                <div className="flex items-center gap-2.5">
-                  <Icon size={12} className="text-white/25" />
-                  <span className="text-sm text-white/55">{label}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-xs text-emerald-400/70">Healthy</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/7 text-xs text-white/35 hover:text-white/60 hover:border-white/15 transition-colors">
-            <RefreshCw size={11} />
-            Refresh Status
-          </button>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-function ActivityFeed({ activity = [] }) {
-  return (
-    <motion.section {...fadeUp(0.1)}>
-      <SectionHeader title="Activity Feed" subtitle="Recent admin actions" />
-      <div className="rounded-2xl border border-white/5 bg-[#111318] p-5">
-        {activity.map((item, i) => {
-          // Support both direct icon component (legacy) and iconKey string from service layer
-          const iconMap = { FolderOpen, UserCheck, BookOpen, Trophy, Trash2 };
-          const Icon = item.icon ?? iconMap[item.iconKey] ?? Activity;
-          return (
-            <motion.div key={item.id}
-              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-              className="flex gap-3.5 relative">
-              {i < activity.length - 1 && (
-                <div className="absolute left-[15px] top-8 bottom-0 w-px bg-white/4" />
-              )}
-              <div className="p-2 rounded-lg bg-white/4 border border-white/6 flex-shrink-0 z-10 h-fit mt-0.5">
-                <Icon size={12} className="text-white/30" />
-              </div>
-              <div className="pb-5 flex-1 min-w-0">
-                <p className="text-sm font-medium text-white/75">{item.action}</p>
-                <p className="text-xs text-white/35 mt-0.5 truncate">{item.detail}</p>
-                <p className="text-xs text-white/20 mt-1">{item.time}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </motion.section>
-  );
-}
-
-// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-
-const NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "projects", label: "Projects", icon: FolderOpen },
-  { id: "paths", label: "Learning Paths", icon: BookOpen },
-  { id: "users", label: "Users", icon: Users },
-  { id: "analytics", label: "Analytics", icon: BarChart2 },
-  { id: "moderation", label: "Moderation", icon: Shield },
-  { id: "achievements", label: "Achievements", icon: Trophy },
-  { id: "settings", label: "Settings", icon: Settings },
-  { id: "activity", label: "Activity", icon: Activity },
-];
-
-function Sidebar({ active, onSelect, collapsed, onToggle }) {
-  return (
-    <motion.aside
-      animate={{ width: collapsed ? 56 : 216 }}
-      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed left-0 top-0 h-full z-30 flex flex-col overflow-hidden"
-      style={{ background: "#080a0d", borderRight: "1px solid rgba(255,255,255,0.05)" }}
-    >
-      {/* Logo */}
-      <div className={`flex items-center gap-2.5 px-4 py-4 border-b border-white/5 ${collapsed ? "justify-center" : ""}`}>
-        <div className="w-6 h-6 rounded-md bg-emerald-400/15 border border-emerald-400/20 flex items-center justify-center flex-shrink-0">
-          <Layers size={12} className="text-emerald-400" />
-        </div>
-        {!collapsed && (
-          <span className="font-semibold text-white/85 text-sm tracking-tight whitespace-nowrap">BuildWise</span>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => onSelect(id)}
-            title={collapsed ? label : undefined}
-            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${active === id
-              ? "bg-white/6 text-white font-medium"
-              : "text-white/35 hover:text-white/70 hover:bg-white/4"
-              } ${collapsed ? "justify-center" : ""}`}>
-            <Icon size={14} className="flex-shrink-0" />
-            {!collapsed && <span className="whitespace-nowrap">{label}</span>}
-          </button>
-        ))}
-      </nav>
-
-      {/* Collapse toggle */}
-      <div className="p-2.5 border-t border-white/5">
-        <button onClick={onToggle}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-white/25 hover:text-white/50 hover:bg-white/4 transition-colors ${collapsed ? "justify-center" : ""}`}>
-          <Menu size={13} />
-          {!collapsed && <span>Collapse</span>}
-        </button>
-      </div>
-    </motion.aside>
-  );
-}
-
-// ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
-
-function NotificationPanel({ open, onClose, notifications = [] }) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={onClose} />
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.16 }}
-            className="absolute right-0 top-11 z-50 w-72 rounded-xl border border-white/8 bg-[#0d0f14] shadow-2xl overflow-hidden"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <span className="text-xs font-semibold text-white/70">Notifications</span>
-              <button onClick={onClose} className="text-white/25 hover:text-white/60 transition-colors"><X size={13} /></button>
-            </div>
-            {notifications.map((n) => (
-              <div key={n.id} className="px-4 py-3 hover:bg-white/3 transition-colors border-b border-white/4 last:border-0">
-                <p className="text-xs text-white/65">{n.message}</p>
-                <p className="text-xs text-white/25 mt-0.5">{n.time}</p>
-              </div>
-            ))}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-// ─── ACCESS DENIED ────────────────────────────────────────────────────────────
-
-function AccessDenied() {
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        className="text-center max-w-sm mx-auto p-8">
-        <div className="w-12 h-12 rounded-xl bg-rose-500/8 border border-rose-500/15 flex items-center justify-center mx-auto mb-6">
-          <Shield size={20} className="text-rose-400/70" />
-        </div>
-        <h1 className="text-xl font-semibold text-white mb-3">Access Denied</h1>
-        <p className="text-white/40 text-sm mb-6 leading-relaxed">
-          You don't have permission to view this page. Admin access is required.
-        </p>
-        <a href="/" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors">
-          <ChevronLeft size={14} strokeWidth={2.5} /> Return Home
-        </a>
-      </motion.div>
     </div>
   );
 }

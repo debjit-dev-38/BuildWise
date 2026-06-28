@@ -18,7 +18,9 @@ import api from "./api.js";
 // ─────────────────────────────────────────────
 
 export const getPlatformMetrics = async () => {
-  return platformMetrics;
+
+  const metricsRes = await api.get("/api/v1/admin/get-PlatformMetrics")
+  return metricsRes.data.data;
 };
 
 export const getAdminProjects = async ({
@@ -100,10 +102,16 @@ export const getAdminNotifications = async () => {
 };
 
 export const getChartData = async () => {
+
+  const chartRes = await api.get("/api/v1/admin/get-Analytics")
+  console.table(chartRes.data.data)
+
+  const{chartUserGrowth,chartProjectCompletions,chartWeeklyEnrollments}=chartRes.data.data
+
   return {
     userGrowth: chartUserGrowth,
-    projectViews: chartProjectViews,
-    pathCompletions: chartPathCompletions,
+    projectCompletions: chartProjectCompletions,
+    weeklyEnrollments: chartWeeklyEnrollments,
   };
 };
 

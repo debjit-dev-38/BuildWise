@@ -184,8 +184,8 @@ export default function AdminPanel() {
   // summary.notifications → notification bell dropdown
   // summary.charts        → chart data (recharts / d3)
   //   .charts.userGrowth
-  //   .charts.projectViews
-  //   .charts.pathCompletions
+  //   .charts.projectCompletions
+  //   .charts.weeklyEnrollments
   // projects              → project management table
   // users                 → user management table
   // paths                 → learning path table

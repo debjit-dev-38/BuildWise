@@ -31,8 +31,7 @@ export const getUserStats = async () => {
   const statsRes = await api.get("/api/v1/dashboard/get-UserStats")
 
   const stats = statsRes?.data?.data
-
-
+  const xp=stats?.xp
   const dashboardStats = [
     {
       label: "Day Streak",
@@ -63,23 +62,16 @@ export const getUserStats = async () => {
       color: COLORS.pink,
     },
   ];
-  return dashboardStats
+  return {dashboardStats,xp}
 };
 
-export const getUserPathProgress = async () => {
-  return userPathProgress;
-};
 
 export const getUserProjects = async () => {
   const projectsRes = await api.get("/api/v1/dashboard/get-UserProjects")
 
-  const userProjects=projectsRes?.data?.data
+  const userProjects = projectsRes?.data?.data
 
   return userProjects;
-};
-
-export const getRecentActivity = async () => {
-  return recentActivity;
 };
 
 export const getUserAchievements = async () => {
@@ -88,13 +80,11 @@ export const getUserAchievements = async () => {
 };
 
 export const getDashboardSummary = async () => {
-  const [stats, paths, projects, activity, userAchievements] =
+  const [ { dashboardStats, xp }, projects, userAchievements] =
     await Promise.all([
       getUserStats(),
-      getUserPathProgress(),
       getUserProjects(),
-      getRecentActivity(),
       getUserAchievements(),
     ]);
-  return { stats, paths, projects, activity, achievements: userAchievements };
+  return { stats: dashboardStats, xp, projects, achievements: userAchievements };
 };

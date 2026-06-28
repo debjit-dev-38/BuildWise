@@ -670,27 +670,23 @@ function QuickActionBtn({ label, icon: Icon, color, onClick }) {
 // ANALYTICS PANEL (replaces Today's Focus)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AnalyticsPanel({ stats, achievements, projects }) {
+function AnalyticsPanel({ stats, xp, achievements, projects }) {
+
   const completedProjects = projects?.filter(e => e.project?.progress === 100).length ?? 0;
   const totalProjects = projects?.length ?? 0;
 
-  const projectsStat = stats?.find(s => s.label?.toLowerCase().includes("project"));
+  const projectsStat = stats?.find(s => s.label?.toLowerCase().includes("shipped")).val;
   const achieveStat = stats?.find(s => s.label?.toLowerCase().includes("achieve"));
 
   const unlockedCount = achievements?.filter(a => a.unlocked).length ?? 0;
   const totalAchieve = achievements?.length ?? 0;
   const completedCount = projectsStat?.val ?? 0;
-  const xpVal = completedCount * 85;
-  const xpNext = (Math.floor(completedCount / 3) + 1) * 255;
-  const xpPct = xpNext > 0 ? Math.min(100, Math.round((xpVal / xpNext) * 100)) : 0;
+  const level = stats?.find(s => s.label?.includes("Current Level")).val;
+  const previousLevelXp = (level - 1) * 500;
+  const xpNext = level * 500
+  const xpPct =((xp - previousLevelXp) / (xpNext - previousLevelXp)) * 100;
   // Next locked achievement
   const nextAchieve = achievements?.find(a => !a.unlocked);
-
-  // Derive level from stats or project count
-  const streakStat = stats?.find(s => s.label?.toLowerCase().includes("streak") || s.suffix === "🔥");
-  const streakVal = streakStat?.val ?? 0;
-  const level = Math.max(1, Math.floor(totalProjects / 2) + 1);
-  const builderScore = Math.min(99, completedProjects * 12 + unlockedCount * 6 + streakVal);
 
   // Completion pct
   const completionPct = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0;
@@ -723,13 +719,13 @@ function AnalyticsPanel({ stats, achievements, projects }) {
             />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-            <span style={{ fontSize: 10, color: "#444" }}>{xpVal} XP</span>
+            <span style={{ fontSize: 10, color: "#444" }}>{xp} XP</span>
             <span style={{ fontSize: 10, color: "#444" }}>{xpNext} XP</span>
           </div>
         </Panel>
 
         {/* Completion bar */}
-        <Panel elevation={1} style={{ padding: "16px 16px" , marginTop:10}}>
+        <Panel elevation={1} style={{ padding: "16px 16px", marginTop: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span style={{ fontSize: 11.5, color: "#666" }}>Project completion</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>{completionPct}%</span>
@@ -784,8 +780,8 @@ function AnalyticTile({ m, i }) {
           width: 28, height: 28, borderRadius: 8,
           background: m.color + "12", border: `1px solid ${m.color}1E`,
           display: "flex", alignItems: "center", justifyContent: "center",
-          marginBottom:10
-          
+          marginBottom: 10
+
         }}>
           <Icon size={13} color={m.color} />
         </div>
@@ -798,7 +794,7 @@ function AnalyticTile({ m, i }) {
         }}>
           {count}
         </div>
-        <div style={{textAlign:"center", fontSize: 10.5, color: "#4a4a4a" }}>{m.label}</div>
+        <div style={{ textAlign: "center", fontSize: 10.5, color: "#4a4a4a" }}>{m.label}</div>
       </div>
     </FadeIn>
   );
@@ -928,62 +924,6 @@ function ProjectCard({ p, i }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTIVITY FEED
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ActivityFeed({ activity }) {
-  if (!activity || activity.length === 0) {
-    return (
-      <FadeIn>
-        <EyebrowLabel>ACTIVITY</EyebrowLabel>
-        <h2 style={{ ...SECTION_HEAD, fontSize: 18, marginBottom: 14 }}>Recent activity</h2>
-        <EmptyState icon={Zap} color={C.amber} title="No activity yet" body="Your actions appear here as you build." />
-      </FadeIn>
-    );
-  }
-
-  return (
-    <FadeIn delay={0.08}>
-      <div>
-        <EyebrowLabel>ACTIVITY</EyebrowLabel>
-        <h2 style={{ ...SECTION_HEAD, fontSize: 18, marginBottom: 14 }}>Recent activity</h2>
-        <Panel elevation={1} style={{ padding: "4px 0" }}>
-          {activity.map((a, i) => {
-            const Icon = a.icon;
-            return (
-              <div key={i} style={{ display: "flex", gap: 12, padding: "12px 18px", position: "relative" }}>
-                {i < activity.length - 1 && (
-                  <div style={{
-                    position: "absolute", left: 27, top: 44, bottom: -10, width: 1,
-                    background: "linear-gradient(to bottom, rgba(255,255,255,0.05), transparent)",
-                  }} />
-                )}
-                <div style={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: a.color + "12", border: `1px solid ${a.color}22`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0, position: "relative", zIndex: 1,
-                }}>
-                  <Icon size={12} color={a.color} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                    <div>
-                      <span style={{ fontSize: 10.5, color: a.color, fontWeight: 600, display: "block", marginBottom: 2 }}>{a.label}</span>
-                      <span style={{ fontSize: 12.5, color: "#8a8a8a", lineHeight: 1.45 }}>{a.text}</span>
-                    </div>
-                    <span style={{ fontSize: 10, color: "#383838", whiteSpace: "nowrap", flexShrink: 0 }}>{a.time}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </Panel>
-      </div>
-    </FadeIn>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ACHIEVEMENTS
@@ -1298,7 +1238,7 @@ export default function Dashboard() {
   if (!data) return null;
 
   // paths destructured but intentionally not rendered
-  const { stats, paths, projects, activity, achievements } = data;
+  const { stats, xp, projects, achievements } = data;
 
   if (!user) {
     return (
@@ -1472,14 +1412,8 @@ export default function Dashboard() {
               <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "sticky", top: 24 }}>
 
                 {/* Analytics */}
-                <AnalyticsPanel stats={stats} achievements={achievements} projects={projects} />
+                <AnalyticsPanel stats={stats} xp={xp} achievements={achievements} projects={projects} />
 
-                <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
-
-                {/* Activity */}
-                <ActivityFeed activity={activity} />
-
-                <div style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
 
                 {/* Ship CTA */}
                 <FadeIn delay={0.12}>

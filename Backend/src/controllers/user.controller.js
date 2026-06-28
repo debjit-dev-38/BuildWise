@@ -96,8 +96,15 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
-    const loggedUser = await User.findById(user._id).select("-password -refreshToken")
-
+    const loggedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+            lastLogin: new Date(),
+        },
+        {
+            new: true,
+        }
+    ).select("-password -refreshToken");
 
     //cookies
     const options = {
@@ -444,8 +451,8 @@ const updateUserStats = asyncHandler(async (req, res) => {
 
                 const enrollment = await Enrollment.findOneAndUpdate(
                     {
-                        project:projectId,
-                        user:req.user._id
+                        project: projectId,
+                        user: req.user._id
                     },
                     {
                         $set: {
@@ -457,26 +464,26 @@ const updateUserStats = asyncHandler(async (req, res) => {
                     })
 
 
-                    const updatedUser=await User.findOneAndUpdate(
-                        req.user._id,
-                        {
-                            $inc:{
-                                "userStats.projectsShipped.value":1,
-                            }
-                        },
-                        {
-                            new:true
+                const updatedUser = await User.findOneAndUpdate(
+                    req.user._id,
+                    {
+                        $inc: {
+                            "userStats.projectsShipped.value": 1,
                         }
-                    )
+                    },
+                    {
+                        new: true
+                    }
+                )
 
-                    return res.status(200).json(
-                        new ApiResponse(200,updatedUser,"Project status updated successfully")
-                    )
-                
+                return res.status(200).json(
+                    new ApiResponse(200, updatedUser, "Project status updated successfully")
+                )
+
             }
     }
 
 
 })
 
-export {updateUserStats, getAdminProject, updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }
+export { updateUserStats, getAdminProject, updateUserRole, getUsers, registerUser, loginUser, logoutUser, RefreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, }

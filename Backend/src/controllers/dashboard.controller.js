@@ -162,7 +162,6 @@ const getUserProjects = asyncHandler(async (req, res) => {
         user: req.user._id,
     })
         .sort({ createdAt: -1 }) // newest enrollment first
-        .limit(3)
         .select("project")
         .populate({
             path: "project",
@@ -170,6 +169,7 @@ const getUserProjects = asyncHandler(async (req, res) => {
         })
         .lean();
 
+        console.log(projects)
     return res.status(200).json(
         new ApiResponse(200, projects, "Recent projects fetched successfully")
     );

@@ -19,11 +19,13 @@ import userRouter from './routes/user.routes.js'
 import { errorHandler } from "./middlewares/errorHandler.middleware.js"
 import enrollRouter from './routes/enrollment.routes.js'
 import dashboardRouter from './routes/dashboard.routes.js'
+import adminRouter from './routes/admin.routes.js'
 
 app.use("/api/v1/projects", projectsRouter)
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/enroll",enrollRouter)
 app.use("/api/v1/dashboard",dashboardRouter)
+app.use("/api/v1/admin",adminRouter)
 
 app.use(errorHandler)
 export { app }
