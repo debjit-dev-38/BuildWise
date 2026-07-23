@@ -570,7 +570,7 @@ function Sidebar({ search, setSearch, activeCategory, setActiveCategory, activeD
   }
 
   return (
-    <div style={{
+    <div className="projects-sidebar" style={{
       position: "sticky", top: 88, width: 220, flexShrink: 0,
       background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
       borderRadius: 14, padding: "20px 16px", backdropFilter: "blur(20px)",
@@ -885,7 +885,20 @@ export default function Projects() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#e5e5e5", fontFamily: "'DM Sans', sans-serif", overflowX: "hidden" }}>
+      <style>{`
+        .mobile-filters-toggle { display: none; }
+        @media (max-width: 1024px) {
+          .projects-layout { flex-direction: column !important; gap: 16px !important; }
+          .sidebar-desktop { display: none !important; }
+          .projects-sidebar { width: 100% !important; position: static !important; max-height: none !important; }
+          .projects-sort-row { margin-bottom: 16px !important; }
+          .mobile-filters-toggle { display: inline-flex !important; }
+        }
+        @media (max-width: 640px) {
+          .projects-card-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       {/* ...unchanged styles, Navbar, Hero... */}
     <Navbar/>
       <Hero
@@ -901,7 +914,7 @@ export default function Projects() {
       <section style={{ padding: "72px 24px 40px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           {/* ...section label unchanged... */}
-          <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
+          <div className="projects-layout" style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
             <div className="sidebar-desktop" style={{ display: "block" }}>
               <Sidebar
                 search={search} setSearch={setSearch}
@@ -914,10 +927,39 @@ export default function Projects() {
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="projects-sort-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  className="mobile-filters-toggle"
+                  onClick={() => setShowMobileFilters((v) => !v)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#d0d0d0", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  <SlidersHorizontal size={13} /> Filters
+                </button>
+              </div>
+              <AnimatePresence>
+                {showMobileFilters && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Sidebar
+                      search={search} setSearch={setSearch}
+                      activeCategory={activeCategory} setActiveCategory={setActiveCategory}
+                      activeDiff={activeDiff} setActiveDiff={setActiveDiff}
+                      activeDuration={activeDuration} setActiveDuration={setActiveDuration}
+                      activeTech={activeTech} setActiveTech={setActiveTech}
+                      onReset={resetFilters}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <SortBar sort={sort} setSort={setSort} resultCount={totalProjects} />
 
               {loading ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                <div className="projects-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} style={{ borderRadius: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", height: 320, animation: "pulse 1.5s ease-in-out infinite" }} />
                   ))}
@@ -925,7 +967,7 @@ export default function Projects() {
               ) : projects.length === 0 ? (
                 <EmptyState onReset={resetFilters} />
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                <div className="projects-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   <AnimatePresence mode="popLayout">
                     {projects.map((p, i) => (
                       <ProjectCard key={p._id} project={p} index={i} />

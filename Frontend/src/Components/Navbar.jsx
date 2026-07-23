@@ -44,6 +44,9 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
 
   return (
@@ -51,7 +54,7 @@ const Navbar = () => {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.25, 0.8, 0.25, 1] }}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5"
+      className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 px-3 sm:px-5"
       style={{
         width: "min(900px, calc(100% - 32px))",
         background: scrolled ? "rgba(10,10,10,0.9)" : "rgba(10,10,10,0.4)",
@@ -61,7 +64,7 @@ const Navbar = () => {
         transition: "background 0.3s ease",
       }}
     >
-      <div className="flex items-center justify-between h-[52px]">
+      <div className="flex items-center justify-between min-h-[52px]">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div
@@ -184,9 +187,10 @@ const Navbar = () => {
 
         {/* Mobile hamburger */}
         <button
-          className="md:hidden text-white"
+          className="md:hidden text-white min-h-11 min-w-11 inline-flex items-center justify-center"
           onClick={() => setOpen(!open)}
           style={{ background: "none", border: "none", cursor: "pointer" }}
+          aria-label={open ? "Close navigation menu" : "Open navigation menu"}
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -201,20 +205,32 @@ const Navbar = () => {
             exit={{ height: 0, opacity: 0 }}
             style={{ overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}
           >
-            <div className="flex flex-col">
+            <div className="flex flex-col pt-1">
               {NAV_LINKS.map((l) => {
                 const isActive = location.pathname === l.path;
                 return (
-                  <Link key={l.name} to={l.path} className="py-[10px] text-sm" style={{
+                  <Link key={l.name} to={l.path} className="py-3 text-sm" style={{
                     color: isActive ? G.green : "#888",
                     fontWeight: isActive ? 600 : 400,
                   }}>{l.name}</Link>
                 );
               })}
             </div>
-            <div className="flex gap-2 mt-2">
-              <button className="flex-1 text-center py-[9px] text-[13px] rounded-lg" style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#e5e5e5", background: "transparent" }}>Login</button>
-              <button className="flex-1 text-center py-[9px] text-[13px] font-semibold rounded-lg" style={{ background: "#6EE7B7", color: "#0A0A0A" }}>Get Started</button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => navigate("/login")}
+                className="flex-1 text-center py-3 text-[13px] rounded-lg min-h-11"
+                style={{ border: "1px solid rgba(255,255,255,0.12)", color: "#e5e5e5", background: "transparent" }}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => navigate("/register")}
+                className="flex-1 text-center py-3 text-[13px] font-semibold rounded-lg min-h-11"
+                style={{ background: "#6EE7B7", color: "#0A0A0A" }}
+              >
+                Get Started
+              </button>
             </div>
           </motion.div>
         )}

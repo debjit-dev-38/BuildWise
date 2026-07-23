@@ -324,7 +324,16 @@ export default function BuildWiseLearningPage() {
         .bw-btn-secondary:hover { border-color: rgba(255,255,255,0.18) !important; color: #fff !important; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @media (max-width: 1024px) { .bw-sidebar-right { display: none !important; } }
-        @media (max-width: 768px)  { .bw-sidebar-left  { display: none !important; } .bw-main { padding: 20px !important; } }
+        @media (max-width: 768px)  {
+          .bw-body { flex-direction: column; height: auto !important; overflow: visible !important; }
+          .bw-sidebar-left {
+            width: 100% !important;
+            border-right: none !important;
+            border-bottom: 1px solid ${BORDER} !important;
+            max-height: 40vh !important;
+          }
+          .bw-main { padding: 20px !important; height: auto !important; }
+        }
       `}</style>
 
         {/* Imported background — radial blobs + grid */}
@@ -334,7 +343,7 @@ export default function BuildWiseLearningPage() {
         <Navbar />
 
         <div style={css.appShell}>
-          <div style={css.body}>
+          <div className="bw-body" style={css.body}>
             {/* ── LEFT SIDEBAR ── */}
             <aside className="bw-sidebar-left" style={css.sidebarLeft}>
               <div style={css.sidebarLabel}>Course Modules</div>
@@ -740,4 +749,3 @@ function ErrorState({ message, onBack }) {
     </div>
   );
 }
-

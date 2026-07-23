@@ -156,7 +156,7 @@ function Gallery({ images }) {
           </span>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(64px, 1fr))", gap: 8 }}>
         {images.map((img, i) => (
           <motion.button key={i} onClick={() => setActive(i)} whileHover={{ scale: 1.02 }}
             style={{
@@ -543,6 +543,16 @@ export default function ProjectDetails() {
   
   return (
     <div style={S.page} data-scroll-container>
+      <style>{`
+        @media (max-width: 1024px) {
+          .pd-two-col { grid-template-columns: 1fr !important; gap: 24px !important; }
+          .pd-side-col { position: static !important; }
+        }
+        @media (max-width: 768px) {
+          .pd-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .pd-feature-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <Background />
       <Navbar />
 
@@ -557,7 +567,7 @@ export default function ProjectDetails() {
               <div style={{ position: "relative", overflow: "hidden" }}>
                 <motion.img
                   src={cover} alt={title}
-                  style={{ width: "100%", height: 480, objectFit: "cover", display: "block" }}
+                  style={{ width: "100%", height: "clamp(240px, 50vw, 480px)", objectFit: "cover", display: "block" }}
                   whileHover={{ scale: 1.03 }}
                   transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 />
@@ -601,7 +611,7 @@ export default function ProjectDetails() {
             </div>
 
             {/* Metrics row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            <div className="pd-metrics-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {metrics.map(({ value, label, icon: Icon }, i) => (
                 <ScrollReveal key={label} delay={i * 0.08}>
                   <GlassCard hoverGlow style={{ padding: "24px 20px", textAlign: "center" }}>
@@ -619,7 +629,7 @@ export default function ProjectDetails() {
           </motion.section>
 
           {/* ── TWO-COLUMN LAYOUT ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 32, alignItems: "start" }}>
+          <div className="pd-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 32, alignItems: "start" }}>
 
             {/* ═══ LEFT COLUMN ═══ */}
             <div style={{ display: "flex", flexDirection: "column", gap: 40, minWidth: 0 }}>
@@ -654,7 +664,7 @@ export default function ProjectDetails() {
               <ScrollReveal>
                 <div>
                   <SectionLabel>Key Features</SectionLabel>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div className="pd-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     {features.map(({ icon: Icon, label, desc }, i) => (
                       <ScrollReveal key={label} delay={i * 0.06}>
                         <GlassCard hoverGlow style={{ padding: "20px 22px", display: "flex", gap: 16, alignItems: "flex-start", height: "100%" }}>
@@ -741,7 +751,7 @@ export default function ProjectDetails() {
             </div>
 
             {/* ═══ RIGHT COLUMN ═══ */}
-            <div style={{ position: "sticky", top: 76, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="pd-side-col" style={{ position: "sticky", top: 76, display: "flex", flexDirection: "column", gap: 16 }}>
 
 
               {/* Tech Stack */}

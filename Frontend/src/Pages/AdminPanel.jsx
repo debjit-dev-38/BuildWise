@@ -1628,6 +1628,7 @@ export default function AdminPanel() {
   const { user, loading } = useContext(UserContext);
   const [section, setSection] = useState("overview");
   const [collapsed, setCollapsed] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
   const [showProjectDrawer, setShowProjectDrawer] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -1681,6 +1682,12 @@ export default function AdminPanel() {
     fetchProjects();
     fetchUsers();
   }, [projectPage, projectFilter, projectSearch, userPage, userFilter, userSearch]);
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 960);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const stats = summary?.metrics ?? {};
   const activity = summary?.activity ?? [];
@@ -1761,7 +1768,7 @@ export default function AdminPanel() {
       {/* Sidebar */}
       <Sidebar
         active={section} onSelect={setSection}
-        collapsed={collapsed} onToggle={() => setCollapsed(c => !c)}
+        collapsed={collapsed || isNarrow} onToggle={() => setCollapsed(c => !c)}
         user={user}
       />
 
