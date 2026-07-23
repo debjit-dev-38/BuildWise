@@ -51,6 +51,17 @@ export default function Home() {
           80%  { opacity: var(--peak); transform: translate(calc(var(--dx) * 0.7), calc(var(--dy) * 0.7)); }
           100% { opacity: 0; transform: translate(0, 0); }
         }
+        @media (max-width: 768px) {
+          .home-hero-layout { gap: 2rem !important; }
+          .home-hero-copy,
+          .home-hero-visual { min-width: 0 !important; width: 100% !important; }
+          .home-project-grid,
+          .home-testimonials-grid { grid-template-columns: 1fr !important; }
+          .home-compare-table { overflow-x: auto; }
+          .home-compare-grid { min-width: 640px; }
+          .home-cta-card { padding: 48px 20px !important; }
+          .home-cta-input { width: 100% !important; min-width: 0 !important; }
+        }
       `}</style>
       <Navbar />
 
@@ -81,9 +92,9 @@ export default function Home() {
 
         
 
-        <div className="relative w-full max-w-[1100px] mx-auto px-6 flex flex-wrap items-center gap-12 justify-between">
+        <div className="home-hero-layout relative w-full max-w-[1100px] mx-auto px-6 flex flex-wrap items-center gap-12 justify-between">
           {/* Left */}
-          <div className="flex-1 min-w-[340px] max-w-[520px]">
+          <div className="home-hero-copy flex-1 w-full max-w-[520px]">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
               <div
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6"
@@ -161,7 +172,7 @@ export default function Home() {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="flex-1 min-w-[320px] flex justify-center relative"
+            className="home-hero-visual flex-1 w-full flex justify-center relative"
           >
             <HeroBrowser />
           </motion.div>
@@ -209,7 +220,7 @@ export default function Home() {
               </p>
             </div>
           </FadeIn>
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+          <div className="home-project-grid grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
             {featuredProjects.map((p, i) => <ProjectCard key={p.name} p={p} i={i} />)}
           </div>
           <FadeIn>
@@ -308,9 +319,9 @@ export default function Home() {
             </div>
           </FadeIn>
           <FadeIn delay={0.15}>
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="home-compare-table rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
               {/* Header */}
-              <div className="grid px-5 py-[14px]" style={{ gridTemplateColumns: "1fr 1fr 1fr", background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="home-compare-grid grid px-5 py-[14px]" style={{ gridTemplateColumns: "1fr 1fr 1fr", background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                 <span />
                 <span className="text-xs font-medium text-center" style={{ color: "#555" }}>Traditional</span>
                 <span className="text-xs font-semibold text-center" style={{ color: "#6EE7B7" }}>BuildWise</span>
@@ -318,7 +329,7 @@ export default function Home() {
               {comparisonTable.map(({ cat, old, bw }, i) => (
                 <div
                   key={cat}
-                  className="grid px-5 py-[14px] items-center"
+                  className="home-compare-grid grid px-5 py-[14px] items-center"
                   style={{
                     gridTemplateColumns: "1fr 1fr 1fr",
                     background: i % 2 === 0
@@ -390,7 +401,7 @@ export default function Home() {
           </div>
 
           {/* Testimonials */}
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+          <div className="home-testimonials-grid grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             {testimonials.map((t, i) => (
               <FadeIn key={t.name} delay={i * 0.1}>
                 <div
@@ -427,7 +438,7 @@ export default function Home() {
         <div className="max-w-[760px] mx-auto">
           <FadeIn>
             <div
-              className="rounded-[20px] text-center relative overflow-hidden"
+              className="home-cta-card rounded-[20px] text-center relative overflow-hidden"
               style={{ padding: "64px 40px", border: "1px solid rgba(110,231,183,0.15)", background: "rgba(110,231,183,0.03)" }}
             >
               {/* Glow */}
@@ -450,8 +461,8 @@ export default function Home() {
                   <input
                     type="email"
                     placeholder="your@email.com"
-                    className="text-sm rounded-lg px-4 py-[11px] outline-none transition-all duration-200"
-                    style={{ width: 240, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e5e5e5" }}
+                    className="home-cta-input text-sm rounded-lg px-4 py-[11px] outline-none transition-all duration-200"
+                    style={{ width: 240, maxWidth: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e5e5e5" }}
                     onFocus={e => (e.target.style.borderColor = "rgba(110,231,183,0.4)")}
                     onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
                   />

@@ -1228,11 +1228,18 @@ export default function Dashboard() {
   const { user, loading } = useContext(UserContext);
   const [active, setActive] = useState("home");
   const [collapsed, setCollapsed] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
   const scrollContainerRef = useRef(null);
   const [data, setData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => { getDashboardSummary().then(setData); }, []);
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 960);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   if (loading) return <Loader size="lg" text="Authenticating..." fullScreen />;
   if (!data) return null;
@@ -1317,7 +1324,7 @@ export default function Dashboard() {
 
       <Sidebar
         active={active} setActive={setActive}
-        collapsed={collapsed} setCollapsed={setCollapsed}
+        collapsed={collapsed || isNarrow} setCollapsed={setCollapsed}
         scrollContainerRef={scrollContainerRef}
       />
 

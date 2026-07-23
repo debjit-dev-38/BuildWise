@@ -142,7 +142,7 @@ export default function About() {
 
           {/* Headline */}
           <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            style={{ ...G.serif, fontSize: 72, fontWeight: 400, lineHeight: 1.08, margin: "0 auto 24px", maxWidth: 820, letterSpacing: "-0.01em" }}>
+            style={{ ...G.serif, fontSize: "clamp(40px, 9vw, 72px)", fontWeight: 400, lineHeight: 1.08, margin: "0 auto 24px", maxWidth: 820, letterSpacing: "-0.01em" }}>
             Building the Future of Learning <em style={{ color: G.green, fontStyle: "italic" }}>Through Projects.</em>
           </motion.h1>
 
@@ -153,7 +153,7 @@ export default function About() {
 
           {/* CTAs */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.3 }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 72 }}>
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 72, flexWrap: "wrap" }}>
             <motion.button onClick={() => navigate("/projects")} whileHover={{ y: -2, boxShadow: "0 14px 44px rgba(110,231,183,0.45)" }} whileTap={{ scale: 0.97 }}
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 28px", borderRadius: 14, background: G.green, color: G.bg, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 6px 24px rgba(110,231,183,0.3)", transition: "box-shadow 0.3s" }}>
               <Globe size={15} /> Explore Projects
@@ -162,7 +162,7 @@ export default function About() {
 
           {/* Trust indicators */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.6 }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 32 }}>
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
             {[
               { value: "18,000+", label: "Builders" },
               { value: "2,400+", label: "Projects Completed" },
@@ -179,7 +179,7 @@ export default function About() {
 
       {/* ═══ OUR STORY ═══ */}
       <section style={{ position: "relative", zIndex: 1, padding: "100px 24px" }}>
-        <div style={{ ...W, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 72, alignItems: "center" }}>
+        <div style={{ ...W, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 40, alignItems: "center" }}>
           {/* Left — story */}
           <ScrollReveal>
             <Label>Our Story</Label>
@@ -249,7 +249,7 @@ export default function About() {
               </h2>
             </div>
           </ScrollReveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
             {philosophy.map(({ icon: Icon, color, title, desc }, i) => (
               <ScrollReveal key={title} delay={i * 0.1}>
                 <GlassCard hover glowColor={`${color}18`} style={{ padding: "36px 30px", height: "100%" }}>
@@ -318,7 +318,7 @@ export default function About() {
               </h2>
             </div>
           </ScrollReveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
             {platformStats.map(({ to, suffix, label, icon: Icon }, i) => (
               <ScrollReveal key={label} delay={i * 0.09}>
                 <GlassCard hover style={{ padding: "36px 28px", textAlign: "center" }}>
@@ -347,7 +347,7 @@ export default function About() {
               </h2>
             </div>
           </ScrollReveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, position: "relative" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, position: "relative" }}>
             {/* Connector lines */}
             <div style={{ position: "absolute", top: 64, left: "33.33%", right: "33.33%", height: 1, background: "linear-gradient(90deg, rgba(110,231,183,0.3), rgba(129,140,248,0.3))", zIndex: 0 }} />
             {howItWorksSteps.map(({ icon: Icon, step, title, desc }, i) => (
@@ -381,7 +381,7 @@ export default function About() {
               </p>
             </div>
           </ScrollReveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
             {team.map(({ name, role, bio, img }, i) => (
               <ScrollReveal key={name} delay={i * 0.09}>
                 <motion.div
@@ -501,7 +501,7 @@ export default function About() {
           </ScrollReveal>
 
           {/* Testimonials */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
             {testimonials.map(({ name, role, quote, avatar, color }, i) => (
               <ScrollReveal key={name} delay={i * 0.09}>
                 <GlassCard hover glowColor={`${color}15`} style={{ padding: "28px 26px" }}>
@@ -526,7 +526,7 @@ export default function About() {
 
           {/* Impact row */}
           <ScrollReveal delay={0.1}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
               {[
                 { icon: Briefcase, label: "Hired at top companies", value: "340+", color: G.green },
                 { icon: Rocket, label: "Side projects launched", value: "1,200+", color: G.indigo },

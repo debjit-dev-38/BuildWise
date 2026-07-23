@@ -1471,6 +1471,12 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
         .bw-drawer-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
         .bw-drawer-body { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.1) transparent; }
         select option { background:#111; }
+        @media (max-width: 768px) {
+          .bw-project-drawer {
+            height: calc(100dvh - 20px) !important;
+            border-radius: 16px !important;
+          }
+        }
       `}</style>
 
       <AnimatePresence>
@@ -1489,6 +1495,7 @@ export default function ProjectBuilderDrawer({ open, onClose, onSave, initialDat
           >
             <motion.div
               key="drawer"
+              className="bw-project-drawer"
               initial={{ scale: 0.96, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 12 }}

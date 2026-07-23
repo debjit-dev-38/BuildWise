@@ -460,17 +460,22 @@ export default function Login() {
           border-color: rgba(255,255,255,0.07) !important;
           transition: background-color 9999s ease-in-out 0s !important;
         }
+        @media (max-width: 1024px) {
+          .login-shell { flex-direction: column; min-height: 100dvh; height: auto !important; overflow-y: auto !important; }
+          .login-left { display: none !important; }
+          .login-right { min-height: 100dvh; padding: 32px 0; overflow: visible !important; }
+        }
       `}</style>
 
-      <div style={{
-        display: "flex", width: "100vw", height: "100vh", overflow: "hidden",
+      <div className="login-shell" style={{
+        display: "flex", width: "100%", minHeight: "100vh", height: "100vh", overflow: "hidden",
         background: BG, color: TEXT, fontFamily: SANS, position: "relative",
       }}>
 
         {/* ════════════════════════
             LEFT — Workspace
         ════════════════════════ */}
-        <div style={{
+        <div className="login-left" style={{
           flex: "0 0 57%", borderRight: `1px solid ${BORDER}`,
           height: "100%", overflow: "hidden", position: "relative",
           display: "flex", flexDirection: "column",
@@ -536,7 +541,7 @@ export default function Login() {
         {/* ════════════════════════
             RIGHT — Auth
         ════════════════════════ */}
-        <div style={{
+        <div className="login-right" style={{
           flex: "1", height: "100%", display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center", position: "relative",
           zIndex: 1, overflow: "hidden",
