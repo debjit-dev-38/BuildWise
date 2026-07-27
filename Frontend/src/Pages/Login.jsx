@@ -1,8 +1,7 @@
 import { useState, useContext } from "react";
 import { bwToast } from "../Components/BuildWiseToast";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../Services/api";
-import axios from "axios";
+import api, { setAccessToken } from "../Services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Eye, EyeOff, ChevronRight, Clock, Lock, Mail, AtSign,
@@ -413,15 +412,7 @@ export default function Login() {
         }
       );
 
-      localStorage.setItem(
-        "accessToken",
-        res.data.data.accessToken
-      );
-
-      localStorage.setItem(
-        "refreshToken",
-        res.data.data.refreshToken
-      );
+      setAccessToken(res.data.data.accessToken);
 
       await getCurrentUser();
       bwToast.success("User logged in successfully")

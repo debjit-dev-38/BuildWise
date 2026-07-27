@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import api from "../Services/api";
+import api, { clearAccessToken } from "../Services/api";
 import Loader from "../Components/Loader";
 import { motion, useInView } from "framer-motion";
 import {
@@ -1143,8 +1143,7 @@ function AccountSettingsCard() {
   const handleLogout = async () => {
     try { await api.post("/api/v1/users/logout", {}); } catch (e) { console.error(e); }
     finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      clearAccessToken();
       setUser(null); navigate("/");
     }
   };

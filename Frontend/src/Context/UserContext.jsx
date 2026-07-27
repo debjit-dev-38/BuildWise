@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from "react";
-import api from "../Services/api";
+import api, { clearAccessToken, setAccessToken } from "../Services/api";
 
 export const UserContext = createContext();
 
@@ -17,34 +17,8 @@ const UserContextProvider = (props) => {
     } catch (error) {
       if (error.response?.status === 401) {
         try {
-          const refreshToken =
-            localStorage.getItem("refreshToken");
-
-          if (!refreshToken) {
-            throw new Error("No refresh token");
-          }
-
-          const refreshRes = await api.post(
-            "/api/v1/users/refresh-token",
-            {
-              refreshToken,
-            }
-          );
-
-          const {
-            accessToken,
-            refreshToken: newRefreshToken,
-          } = refreshRes.data.data;
-
-          localStorage.setItem(
-            "accessToken",
-            accessToken
-          );
-
-          localStorage.setItem(
-            "refreshToken",
-            newRefreshToken
-          );
+          const refreshRes = await api.post("/api/v1/users/refresh-token");
+          setAccessToken(refreshRes.data.data.accessToken);
 
           const userRes = await api.get(
             "/api/v1/users/current-user"
@@ -52,8 +26,7 @@ const UserContextProvider = (props) => {
 
           setUser(userRes.data.data);
         } catch (refreshError) {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
+          clearAccessToken();
           setUser(null);
         }
       } else {

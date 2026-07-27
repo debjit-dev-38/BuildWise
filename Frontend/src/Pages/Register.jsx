@@ -7,7 +7,7 @@ import {
   LayoutGrid, Folder, TrendingUp, BookOpen, Users, Settings,
   Calendar, BarChart3, CheckCircle2, Circle, User, AtSign,
 } from "lucide-react";
-import axios from "axios";
+import api from "../Services/api";
 import { getFeaturedProjects } from "../Services/projectService";
 // ── Design tokens ──────────────────────────────────────────────────────────
 const ACCENT = "#6EE7B7";
@@ -402,7 +402,7 @@ export default function Register() {
     setLoading(true);
     try {
       // TODO: await loginUser({ email, password });
-      await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/users/register`, {
+      await api.post("/api/v1/users/register", {
         fullName,
         username,
         email,

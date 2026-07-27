@@ -2,7 +2,6 @@ import { projects } from "../data/projects.js";
 import { projectDetails } from "../data/projectDetails.js";
 import { matchDurationFilter } from "../data/filters.js";
 import api from "./api.js";
-import axios from "axios";
 
 // ─────────────────────────────────────────────
 // Project Service
@@ -40,7 +39,7 @@ export const getProjects = async ({
     ...(search && { search }),
   };
 
-  const { data } = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project`, { params });
+  const { data } = await api.get("/api/v1/projects/get-project", { params });
   return data.data; // { projects, totalProjects, page, totalPages, hasNextPage }
 }
 export const getProjectById = async (id) => {
@@ -48,9 +47,7 @@ export const getProjectById = async (id) => {
 };
 
 export const getProjectBySlug = async (slug) => {
-  const res = await axios.get(
-    `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${slug}`
-  );
+  const res = await api.get(`/api/v1/projects/get-project/${slug}`);
 
   return res.data.data;
 };
@@ -66,9 +63,7 @@ export const getProjectBySlug = async (slug) => {
 
 export const getProjectModules = async (slug) => {
   // Fetch project
-  const projectRes = await axios.get(
-    `${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${slug}`
-  );
+  const projectRes = await api.get(`/api/v1/projects/get-project/${slug}`);
 
   const projectData = projectRes.data.data;
 

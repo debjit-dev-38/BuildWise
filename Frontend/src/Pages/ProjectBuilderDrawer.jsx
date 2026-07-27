@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import axios from "axios";
+import api from "../Services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, User, Star, Lock, Shield, BookOpen, Code, Rocket, Target, Brain,
@@ -292,8 +293,8 @@ function IconBtn({ iconKey, onClick, accent }) {
 
 // ─── PDF Upload ────────────────────────────────────────────────────────────────
 const PDF_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-const PDF_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-pdf`;
-const PDF_URL_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-pdf-by-url`;
+const PDF_UPLOAD_ENDPOINT = "/api/v1/projects/upload-pdf";
+const PDF_URL_UPLOAD_ENDPOINT = "/api/v1/projects/upload-pdf-by-url";
 // NOTE: PDF uploads occur immediately when selected.
 // Backend should clean up orphan uploads if a user uploads a PDF but never saves the project.
 
@@ -349,7 +350,7 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
       const formData = new FormData();
       formData.append("pdf", file);
 
-      const response = await axios.post(
+      const response = await api.post(
         PDF_UPLOAD_ENDPOINT,
         formData,
         {
@@ -393,7 +394,7 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
     abortRef.current = new AbortController();
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         PDF_URL_UPLOAD_ENDPOINT,
         { url: trimmedUrl },
         { signal: abortRef.current.signal }
@@ -505,8 +506,8 @@ function PdfUpload({ pdfName, pdfUrl, onUpload, onRemove }) {
 
 // ─── Image Upload ──────────────────────────────────────────────────────────────
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-const IMAGE_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-image`;
-const IMAGE_URL_UPLOAD_ENDPOINT = `${import.meta.env.VITE_APP_URI}/api/v1/projects/upload-image-by-url`;
+const IMAGE_UPLOAD_ENDPOINT = "/api/v1/projects/upload-image";
+const IMAGE_URL_UPLOAD_ENDPOINT = "/api/v1/projects/upload-image-by-url";
 const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]);
 const ACCEPTED_IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
 // NOTE: Image uploads occur immediately when selected.
@@ -558,7 +559,7 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
       const formData = new FormData();
       formData.append("image", file);
 
-      const response = await axios.post(IMAGE_UPLOAD_ENDPOINT, formData, {
+      const response = await api.post(IMAGE_UPLOAD_ENDPOINT, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         signal: abortRef.current.signal,
       });
@@ -597,7 +598,7 @@ function ImageUpload({ url, originalName, onUpload, onRemove, label = "Upload Im
     abortRef.current = new AbortController();
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         IMAGE_URL_UPLOAD_ENDPOINT,
         { url: trimmedUrl },
         { signal: abortRef.current.signal }

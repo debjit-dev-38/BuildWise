@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import Loader from "../Components/Loader";
 import { UserContext } from "../Context/UserContext";
-import axios from "axios";
+import api from "../Services/api";
 import {
   LayoutDashboard, Users, FolderOpen, Trophy, Settings,
   Bell, Activity, Shield, Plus, Search, Edit2, Trash2,
@@ -10,6 +10,7 @@ import {
   Database, Cpu, Globe, BarChart2, RefreshCw,
   UserCheck, UserX, ChevronRight, ChevronLeft, ArrowUpRight,
   CheckCircle, Menu, Hammer, Layers,
+  BookCheck,
 } from "lucide-react";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -794,7 +795,7 @@ function AchievementModal({ onClose, initial = null, onSave }) {
 function ProjectManagement({ projects, setProjects, totalProjects, totalPages, page, setPage, search, setSearch, filter, setFilter, onAddProject, onEditProject }) {
   const removeProject = async (id) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_APP_URI}/api/v1/projects/delete-project/${id}`);
+      await api.delete(`/api/v1/projects/delete-project/${id}`);
       setProjects(prev => prev.filter(x => x._id !== id));
     } catch (error) {
       console.error(error);
@@ -1161,7 +1162,7 @@ function AnalyticsSection({ chartUserGrowth = [], chartProjectCompletions = [], 
                     <Line
                       type="monotone" dataKey="enrollments" name="Enrollments"
                       stroke={C.green} strokeWidth={2} dot={false}
-                      activeDot={{ r: 4, fill: C.indigo, strokeWidth: 0 }}
+                      activeDot={{ r: 4, fill: C.green, strokeWidth: 0 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1484,6 +1485,7 @@ function Overview({ user, stats, activity, chartUserGrowth, chartProjectCompleti
     { icon: CheckCircle, label: "Completions", value: stats.totalCompletions ?? 0, accent: C.amber },
     { icon: Zap, label: "Active Users", value: stats.totalActiveUsers ?? 0, accent: C.green },
     { icon: TrendingUp, label: "New This Week", value: stats.newUsersThisWeek ?? 0, accent: C.indigo },
+    {icon: BookCheck, label: "Enrollments", value: stats.totalEnrollments ?? 0, accent: C.amber },
   ];
 
   // ── Real derived quick stats ──
@@ -1661,9 +1663,9 @@ export default function AdminPanel() {
   const handleSaveProject = async (projectData) => {
     try {
       if (editingProject) {
-        await axios.put(`${import.meta.env.VITE_APP_URI}/api/v1/projects/update-project/${editingProject._id}`, projectData);
+        await api.put(`/api/v1/projects/update-project/${editingProject._id}`, projectData);
       } else {
-        await axios.post(`${import.meta.env.VITE_APP_URI}/api/v1/projects/add-project`, projectData);
+        await api.post("/api/v1/projects/add-project", projectData);
       }
       await fetchProjects();
       setShowProjectDrawer(false);
@@ -1707,7 +1709,7 @@ export default function AdminPanel() {
         onAddProject={() => { setEditingProject(null); setShowProjectDrawer(true); }}
         onEditProject={async (project) => {
           try {
-            const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/v1/projects/get-project/${project.slug}`);
+            const res = await api.get(`/api/v1/projects/get-project/${project.slug}`);
             setEditingProject(res.data.data ?? res.data);
           } catch { setEditingProject(project); }
           setShowProjectDrawer(true);

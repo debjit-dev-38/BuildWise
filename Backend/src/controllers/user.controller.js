@@ -8,6 +8,19 @@ import validator from "validator";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 import { Enrollment } from "../models/enrollment.model.js";
+const refreshCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/v1/users/refresh-token",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+const refreshCookieClearOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/v1/users/refresh-token",
+};
 const generateAccessAndRefreshTokens = async (userId) => {
     /*
         1. User logs in
@@ -106,22 +119,12 @@ const loginUser = asyncHandler(async (req, res) => {
         }
     ).select("-password -refreshToken");
 
-    //cookies
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite:
-            process.env.NODE_ENV === "production"
-                ? "none"
-                : "lax",
-    };
     return res
         .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
+        .cookie("refreshToken", refreshToken, refreshCookieOptions)
         .json(
             new ApiResponse(200, {
-                user: loggedUser, accessToken, refreshToken
+                user: loggedUser, accessToken,
             },
                 "user logged in successfully"
             )
@@ -227,22 +230,13 @@ const logoutUser = asyncHandler(async (req, res) => {
             new: true
         }
     )
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite:
-            process.env.NODE_ENV === "production"
-                ? "none"
-                : "lax",
-    };
     return res.status(200)
-        .clearCookie("accessToken", options)
-        .clearCookie("refreshToken", options)
+        .clearCookie("refreshToken", refreshCookieClearOptions)
         .json(new ApiResponse(200, {}, "User logged out"))
 })
 
 const RefreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies.refreshToken;
 
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Unauthorized tokens")
@@ -257,24 +251,14 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
         if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "Refresh token is expired")
         }
-        const options = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite:
-                process.env.NODE_ENV === "production"
-                    ? "none"
-                    : "lax",
-        };
-
         const { accessToken, refreshToken: newrefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         return res.status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", newrefreshToken, options)
+            .cookie("refreshToken", newrefreshToken, refreshCookieOptions)
             .json(
                 new ApiResponse(
                     200,
-                    { accessToken, refreshToken: newrefreshToken },
+                    { accessToken},
                     "Access token refreshed successfully"
                 )
             )
@@ -286,7 +270,10 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
-    const user = await User.findById(req.user?._id)
+    const user = await User.findById(req.user?._id).select("+password");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
     isPasswordCorrect(oldPassword)
     if (!isPasswordCorrect) {
         throw new ApiError(400, "Invaild old password")
