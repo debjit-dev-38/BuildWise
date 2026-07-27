@@ -1232,7 +1232,23 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => { getDashboardSummary().then(setData); }, []);
+  useEffect(() => {
+    if (loading || !user) return;
+
+    let isMounted = true;
+
+    getDashboardSummary()
+      .then((summary) => {
+        if (isMounted) setData(summary);
+      })
+      .catch((error) => {
+        console.error("Failed to load dashboard data", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loading, user]);
   useEffect(() => {
     const onResize = () => setIsNarrow(window.innerWidth < 960);
     onResize();
